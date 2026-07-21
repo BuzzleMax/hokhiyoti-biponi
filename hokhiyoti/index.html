@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Hokhiyoti Biponi — Storefront</title>
+    <meta name="description" content="Shop collections, categories, and products from Hokhiyoti Biponi." />
+
+    <meta name="theme-color" content="#111111" />
+
+    <!-- Luxury typography: Playfair Display (headings) + Inter (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- No-flicker theme initialization: set `html.dark` before paint -->
+    <script>
+      (function () {
+        try {
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (prefersDark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+
+
+    <meta property="og:title" content="Hokhiyoti Biponi — Storefront" />
+    <meta property="og:description" content="Shop collections, categories, and products from Hokhiyoti Biponi." />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

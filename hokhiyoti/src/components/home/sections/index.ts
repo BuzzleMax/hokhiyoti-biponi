@@ -1,0 +1,12 @@
+export { default as LuxuryHero } from './LuxuryHero'
+export { default as FeaturedCollection } from './FeaturedCollection'
+export { default as NewArrivals } from './NewArrivals'
+export { default as EditorsPicks } from './EditorsPicks'
+export { default as AboutHokhiyoti } from './AboutHokhiyoti'
+export { default as CategoryGrid } from './CategoryGrid'
+export { default as FeaturedProducts } from './FeaturedProducts'
+export { default as StoryBanner } from './StoryBanner'
+export { default as Testimonials } from './Testimonials'
+export { default as NewsletterSection } from './NewsletterSection'
+export { default as InstagramStyleGallery } from './InstagramStyleGallery'
+
