@@ -14,11 +14,19 @@ import SearchPage from './pages/search.page'
 import QueryProvider from './components/layout/QueryProvider'
 import ThemeProvider from './components/layout/ThemeProvider'
 
+/**
+ * Scroll to top when navigating to a new *page* route.
+ * Hash navigation is handled by AppLink directly (smooth scroll), so we
+ * only fire when the pathname changes without a hash fragment.
+ */
 function ScrollToTopOnRouteChange() {
   const [location] = useLocation()
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    // Only scroll to top on genuine page transitions, not hash-anchor clicks.
+    if (!window.location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
   }, [location])
 
   return null

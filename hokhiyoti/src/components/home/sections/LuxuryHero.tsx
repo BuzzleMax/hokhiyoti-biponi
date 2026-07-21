@@ -13,7 +13,7 @@ export default function LuxuryHero() {
   }
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-[#0a0a0a]">
+    <section id="hero" className="relative h-screen w-full overflow-hidden bg-[#0a0a0a]">
       {/* Background Image Container with Slow Zoom */}
       <div className="absolute inset-0 w-full h-full">
         <motion.div

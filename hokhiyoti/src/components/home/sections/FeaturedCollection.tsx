@@ -25,7 +25,7 @@ export default function FeaturedCollection() {
   }, [])
 
   return (
-    <section className="bg-[#FAF9F6] py-24 px-6 md:px-12 max-w-[1400px] mx-auto">
+    <section id="collection" className="bg-[#FAF9F6] py-24 px-6 md:px-12 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div className="max-w-[600px]">

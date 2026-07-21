@@ -3,7 +3,7 @@ import heroImage from '../../../assets/hero.png'
 
 export default function AboutHokhiyoti() {
   return (
-    <section className="bg-[#FFFFFF] py-24 px-6 md:px-12 max-w-[1400px] mx-auto rounded-3xl my-12 border border-[rgba(0,0,0,0.03)] shadow-soft">
+    <section id="about" className="bg-[#FFFFFF] py-24 px-6 md:px-12 max-w-[1400px] mx-auto rounded-3xl my-12 border border-[rgba(0,0,0,0.03)] shadow-soft">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Story Text */}
         <div className="lg:col-span-7 space-y-8">

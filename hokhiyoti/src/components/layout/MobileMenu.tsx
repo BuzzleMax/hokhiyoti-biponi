@@ -3,18 +3,21 @@ import { X, Search, ShoppingBag, MessageCircle, Camera } from 'lucide-react'
 import { AppLink } from '../../lib/navigation'
 import logo from '../../assets/logo.png'
 
+/**
+ * Same hash-anchor structure as Navbar.
+ * All home-section links use #id — never navigate outside /hokhiyoti-biponi/.
+ */
 const leftItems: Array<{ to: string; label: string }> = [
   { to: '/', label: 'Home' },
-  { to: '/collection', label: 'Collections' },
-  { to: '/category', label: 'Categories' },
-  { to: '/about', label: 'About' },
+  { to: '#collection', label: 'Collections' },
+  { to: '#categories', label: 'Categories' },
+  { to: '#about', label: 'About' },
 ]
 
 const rightItems: Array<{ to: string; label: string }> = [
-  { to: '/contact', label: 'Contact' },
+  { to: '#contact', label: 'Contact' },
+  { to: '#newsletter', label: 'Newsletter' },
   { to: '/search', label: 'Search' },
-  { to: '/wishlist', label: 'Wishlist' },
-  { to: '/account', label: 'Account' },
 ]
 
 export default function MobileMenu({
@@ -26,6 +29,8 @@ export default function MobileMenu({
 }) {
   if (!open) return null
 
+  const close = () => onOpenChange(false)
+
   return (
     <div className="fixed inset-0 z-[100] flex">
       {/* Backdrop */}
@@ -33,7 +38,7 @@ export default function MobileMenu({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => onOpenChange(false)}
+        onClick={close}
         className="fixed inset-0 bg-[#111111]/40 backdrop-blur-sm"
       />
 
@@ -49,7 +54,7 @@ export default function MobileMenu({
       >
         {/* Header inside drawer */}
         <div className="flex items-center justify-between pb-8 border-b border-[rgba(0,0,0,0.06)]">
-          <AppLink to="/" onClick={() => onOpenChange(false)} className="inline-block">
+          <AppLink to="/" onClick={close} className="inline-block">
             <img
               src={logo}
               alt="Hokhiyoti Biponi"
@@ -58,7 +63,7 @@ export default function MobileMenu({
           </AppLink>
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={close}
             className="p-2 text-[#111111] hover:text-[#B08D57] transition-colors"
             aria-label="Close"
           >
@@ -80,7 +85,7 @@ export default function MobileMenu({
                 >
                   <AppLink
                     to={item.to}
-                    onClick={() => onOpenChange(false)}
+                    onClick={close}
                     className="font-heading text-xl font-medium tracking-wide text-[#111111] hover:text-[#B08D57] transition-colors block"
                   >
                     {item.label}
@@ -89,7 +94,7 @@ export default function MobileMenu({
               ))}
             </div>
             <div className="space-y-4 pt-6">
-              <p className="text-xs font-medium tracking-widest text-[#666666] mb-4">ACCOUNT</p>
+              <p className="text-xs font-medium tracking-widest text-[#666666] mb-4">EXPLORE</p>
               {rightItems.map((item, index) => (
                 <motion.div
                   key={item.to}
@@ -99,7 +104,7 @@ export default function MobileMenu({
                 >
                   <AppLink
                     to={item.to}
-                    onClick={() => onOpenChange(false)}
+                    onClick={close}
                     className="font-heading text-xl font-medium tracking-wide text-[#111111] hover:text-[#B08D57] transition-colors block"
                   >
                     {item.label}
@@ -114,7 +119,7 @@ export default function MobileMenu({
             <div className="flex items-center gap-6">
               <AppLink
                 to="/search"
-                onClick={() => onOpenChange(false)}
+                onClick={close}
                 className="flex items-center gap-3 text-xs tracking-wider text-[#666666] hover:text-[#111111]"
               >
                 <Search className="h-4 w-4 stroke-[1.2]" />
@@ -122,7 +127,7 @@ export default function MobileMenu({
               </AppLink>
               <AppLink
                 to="/collection"
-                onClick={() => onOpenChange(false)}
+                onClick={close}
                 className="flex items-center gap-3 text-xs tracking-wider text-[#666666] hover:text-[#111111]"
               >
                 <ShoppingBag className="h-4 w-4 stroke-[1.2]" />
@@ -133,7 +138,7 @@ export default function MobileMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-xs tracking-wider text-[#666666] hover:text-[#25D366]"
-                onClick={() => onOpenChange(false)}
+                onClick={close}
               >
                 <MessageCircle className="h-4 w-4 stroke-[1.2]" />
                 <span>WHATSAPP</span>
@@ -143,7 +148,7 @@ export default function MobileMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-xs tracking-wider text-[#666666] hover:text-[#E1306C]"
-                onClick={() => onOpenChange(false)}
+                onClick={close}
               >
                 <Camera className="h-4 w-4 stroke-[1.2]" />
                 <span>INSTAGRAM</span>
@@ -151,7 +156,7 @@ export default function MobileMenu({
             </div>
             <div className="text-[11px] text-[#666666] leading-relaxed tracking-wide">
               <p className="font-medium text-[#111111] mb-1">ASSAM, INDIA</p>
-              <p>Muga & Eri Silk Curations</p>
+              <p>Muga &amp; Eri Silk Curations</p>
               <p>hokhiyotibiponi@gmail.com</p>
             </div>
           </div>

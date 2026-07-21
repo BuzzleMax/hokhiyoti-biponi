@@ -9,9 +9,26 @@ export default defineConfig({
       '@': new URL('./src', import.meta.url).pathname,
     },
   },
-  // Portable GitHub Pages base.
-  // Works locally (/) and on GH Pages (./ or repo root) without hardcoding the repo name.
-  base: './',
+  // GitHub Pages base — must match the repository name exactly.
+  base: '/hokhiyoti-biponi/',
+  build: {
+    // Split vendor libraries into separate chunks to reduce main bundle size.
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('node_modules/wouter')) {
+            return 'vendor-router'
+          }
+        },
+      },
+    },
+  },
 })
 
 

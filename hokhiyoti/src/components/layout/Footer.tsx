@@ -4,7 +4,7 @@ import logo from '../../assets/logo.png'
 
 export default function Footer() {
   return (
-    <footer className="bg-[#FAF9F6] border-t border-[rgba(0,0,0,0.06)] pt-24 pb-12 px-6 md:px-12">
+    <footer id="contact" className="bg-[#FAF9F6] border-t border-[rgba(0,0,0,0.06)] pt-24 pb-12 px-6 md:px-12">
       <div className="max-w-[1400px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 15 }}

@@ -8,7 +8,14 @@ export default function AdminLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === 'Hokhiyoti@2026') {
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD
+    
+    if (!adminPassword) {
+      setError('Admin password not configured. Set VITE_ADMIN_PASSWORD environment variable.')
+      return
+    }
+    
+    if (password === adminPassword) {
       localStorage.setItem('hokhiyoti_admin', 'true')
       setLocation('/admin')
     } else {

@@ -27,7 +27,7 @@ export default function CategoryGrid() {
   }, [])
 
   return (
-    <section className="mx-auto max-w-[1126px] px-4 py-10">
+    <section id="categories" className="mx-auto max-w-[1126px] px-4 py-10">
       <div className="flex items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">Category Grid</div>
