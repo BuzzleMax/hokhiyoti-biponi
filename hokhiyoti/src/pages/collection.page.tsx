@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Product } from '../types/product.types'
+import type { Collection } from '../types/collection.types'
 import { supabaseProductService } from '../services/supabase/product.service'
+import { supabaseCollectionService } from '../services/supabase/collection.service'
 import ProductCard from '../components/home/ProductCard'
 
 export default function CollectionPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
   const [activeCollection, setActiveCollection] = useState<string>('all')
 
   useEffect(() => {
@@ -14,18 +17,21 @@ export default function CollectionPage() {
       .catch(() => setProducts([]))
   }, [])
 
-  const collections = [
-    { slug: 'all', name: 'ALL COLLECTIONS' },
-    ...Array.from(new Map(
-      products
-        .filter((p) => p.collection?.slug && p.collection?.name)
-        .map((p) => [p.collection!.slug, { slug: p.collection!.slug, name: p.collection!.name.toUpperCase() }]),
-    ).values()),
-  ]
+  useEffect(() => {
+    supabaseCollectionService
+      .listCollections()
+      .then((res) => setCollections(res))
+      .catch(() => setCollections([]))
+  }, [])
 
   const filteredProducts = activeCollection === 'all'
     ? products
     : products.filter((p) => p.collection?.slug === activeCollection)
+
+  const collectionTabs = [
+    { slug: 'all', name: 'ALL COLLECTIONS' },
+    ...collections.map((c) => ({ slug: c.slug, name: c.name.toUpperCase() })),
+  ]
 
   return (
     <div className="bg-[#FAF9F6] min-h-screen py-16 px-6 md:px-12 max-w-[1400px] mx-auto">
@@ -44,7 +50,7 @@ export default function CollectionPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap justify-center gap-2 mb-16">
-        {collections.map((col) => (
+        {collectionTabs.map((col) => (
           <button
             key={col.slug}
             onClick={() => setActiveCollection(col.slug)}

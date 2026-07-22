@@ -63,7 +63,6 @@ export default function AboutHokhiyoti() {
               "An heirloom curation designed to transcend seasonal trends."
             </p>
             <p className="font-sans text-[10px] tracking-wider text-[#B08D57] font-semibold">
-              CELINE DEPT. EDITORIAL
             </p>
           </div>
         </div>

@@ -2,15 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
     },
   },
-  // GitHub Pages base — must match the repository name exactly.
-  base: '/hokhiyoti-biponi/',
+  // Use '/' for local dev, '/hokhiyoti-biponi/' for GitHub Pages production build
+  base: mode === 'production' ? '/hokhiyoti-biponi/' : '/',
   build: {
     // Split vendor libraries into separate chunks to reduce main bundle size.
     rollupOptions: {
@@ -29,6 +29,6 @@ export default defineConfig({
       },
     },
   },
-})
+}))
 
 

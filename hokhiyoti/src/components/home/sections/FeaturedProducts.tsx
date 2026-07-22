@@ -9,7 +9,7 @@ export default function FeaturedProducts() {
   useEffect(() => {
     let cancelled = false
     supabaseProductService
-      .getBestSellers()
+      .getFeaturedProducts()
       .then((res) => {
         if (!cancelled) {
           setProducts(res.length > 0 ? res : [])
@@ -33,7 +33,7 @@ export default function FeaturedProducts() {
             MOST COVETED
           </span>
           <h2 className="mt-3 font-heading text-3xl md:text-4xl font-medium text-[#111111] leading-tight">
-            Best Sellers
+            Featured Products
           </h2>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default function FeaturedProducts() {
         </div>
       ) : (
         <div className="py-12 text-center text-sm font-sans text-[#666666] tracking-wide">
-          Curating best-selling items. Please check back shortly.
+          Curating featured items. Please check back shortly.
         </div>
       )}
     </section>

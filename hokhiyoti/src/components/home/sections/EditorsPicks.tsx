@@ -55,7 +55,7 @@ export default function EditorsPicks() {
           <div key={i} className="group overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)]/70 bg-[var(--color-surface)] shadow-[var(--shadow-soft)]">
             <div className="aspect-[16/10] bg-[rgba(229,228,231,0.35)] relative">
               <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),rgba(0,0,0,0))]" />
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--color-muted)]">Editorial photo placeholder</div>
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-[var(--color-muted)]">Editorial Photo</div>
             </div>
             <div className="p-4">
               <div className="font-heading text-[15px]">Editor’s pick #{i + 1}</div>

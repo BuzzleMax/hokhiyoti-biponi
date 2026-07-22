@@ -1,6 +1,7 @@
 export { default as LuxuryHero } from './LuxuryHero'
 export { default as FeaturedCollection } from './FeaturedCollection'
 export { default as NewArrivals } from './NewArrivals'
+export { default as BestSellers } from './BestSellers'
 export { default as EditorsPicks } from './EditorsPicks'
 export { default as AboutHokhiyoti } from './AboutHokhiyoti'
 export { default as CategoryGrid } from './CategoryGrid'

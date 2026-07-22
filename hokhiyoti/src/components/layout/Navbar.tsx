@@ -12,8 +12,8 @@ export type NavItem = {
  */
 const leftItems: NavItem[] = [
   { to: '/', label: 'Home' },
-  { to: '#collection', label: 'Collections' },
-  { to: '#categories', label: 'Categories' },
+  { to: '/collection', label: 'Collections' },
+  { to: '/category', label: 'Categories' },
   { to: '#about', label: 'About' },
 ]
 
@@ -71,6 +71,10 @@ export default function Navbar({ className }: { className?: string }) {
   const isActive = (item: NavItem) => {
     if (item.to === '/') return activeHash === '' || activeHash === 'hero'
     if (item.to.startsWith('#')) return '#' + activeHash === item.to
+    // For route links, check if current path matches
+    if (item.to.startsWith('/')) {
+      return window.location.pathname === item.to || window.location.pathname.endsWith(item.to)
+    }
     return false
   }
 

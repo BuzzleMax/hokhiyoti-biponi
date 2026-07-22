@@ -100,7 +100,7 @@ export default function LuxuryHero() {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative h-14 px-10 bg-transparent border-2 border-[#D4AF37] text-[#D4AF37] overflow-hidden transition-all duration-500"
+              className="group relative h-14 px-10 bg-transparent border-2 border-[#D4AF37] text-[#D4AF37] overflow-hidden transition-all duration-500 flex items-center justify-center"
             >
               <div className="absolute inset-0 bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
               <span className="relative flex items-center gap-3 font-sans text-xs font-semibold tracking-[0.2em] uppercase group-hover:text-[#0a0a0a] transition-colors duration-300">

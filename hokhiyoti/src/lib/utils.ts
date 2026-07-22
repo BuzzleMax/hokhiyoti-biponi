@@ -12,26 +12,59 @@ export function formatPriceINR(price: number) {
   }).format(price)
 }
 
-export function buildWhatsAppMessage(productName: string, price: number) {
-  return [
-    'Hello! 👋',
+export function buildWhatsAppMessage(options: {
+  productName: string
+  price: number
+  selectedColour?: string
+  selectedSize?: string
+  enableSizes?: boolean
+  productUrl?: string
+  customerNote?: string
+}) {
+  const { productName, price, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
+
+  const lines = [
+    'Hello.',
     '',
-    'I would like to purchase this product.',
+    'I want to order',
     '',
     'Product:',
     productName,
     '',
     'Price:',
     formatPriceINR(price),
-    '',
-    'Please let me know if it is available.',
-    '',
-    'Thank you!',
-  ].join('\n')
+  ]
+
+  if (selectedColour) {
+    lines.push('', 'Colour:', selectedColour)
+  }
+
+  if (enableSizes && selectedSize) {
+    lines.push('', 'Size:', selectedSize)
+  }
+
+  if (productUrl) {
+    lines.push('', 'Product Link:', productUrl)
+  }
+
+  if (customerNote) {
+    lines.push('', 'Customer Note:', customerNote)
+  }
+
+  lines.push('', 'Thank you!')
+
+  return lines.join('\n')
 }
 
-export function getWhatsAppProductUrl(productName: string, price: number) {
-  const text = encodeURIComponent(buildWhatsAppMessage(productName, price))
+export function getWhatsAppProductUrl(options: {
+  productName: string
+  price: number
+  selectedColour?: string
+  selectedSize?: string
+  enableSizes?: boolean
+  productUrl?: string
+  customerNote?: string
+}) {
+  const text = encodeURIComponent(buildWhatsAppMessage(options))
   return `https://wa.me/${WHATSAPP_PHONE}?text=${text}`
 }
-

@@ -9,8 +9,8 @@ import logo from '../../assets/logo.png'
  */
 const leftItems: Array<{ to: string; label: string }> = [
   { to: '/', label: 'Home' },
-  { to: '#collection', label: 'Collections' },
-  { to: '#categories', label: 'Categories' },
+  { to: '/collection', label: 'Collections' },
+  { to: '/category', label: 'Categories' },
   { to: '#about', label: 'About' },
 ]
 

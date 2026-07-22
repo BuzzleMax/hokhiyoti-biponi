@@ -1,13 +1,27 @@
 import { motion } from 'framer-motion'
-import heroImage from '../../../assets/hero.png'
+import tele9 from '../../../assets/tele9.PNG'
+import tele8 from '../../../assets/tele8.PNG'
+import tele7 from '../../../assets/tele7.PNG'
+import tele6 from '../../../assets/tele6.PNG'
+import tele5 from '../../../assets/tele5.PNG'
+import tele4 from '../../../assets/tele4.PNG'
 
 const IMAGES = [
-  heroImage,
-  heroImage,
-  heroImage,
-  heroImage,
-  heroImage,
-  heroImage,
+  tele9,
+  tele8,
+  tele7,
+  tele6,
+  tele5,
+  tele4,
+]
+
+const LINKS = [
+  'https://www.instagram.com/hokhiyoti_biponi/reel/DYql2LAJfyD/',
+  'https://www.instagram.com/hokhiyoti_biponi/p/DXjYiiuiY76/',
+  'https://www.instagram.com/hokhiyoti_biponi/reel/DXodzJoiXWq/',
+  'https://www.instagram.com/hokhiyoti_biponi/reel/DXnoGeyCVjQ/',
+  'https://www.instagram.com/hokhiyoti_biponi/reel/DXrJz-AiWGU/',
+  'https://www.instagram.com/hokhiyoti_biponi/reel/DXx7P_7pyhg/',
 ]
 
 export default function InstagramStyleGallery() {
@@ -29,7 +43,7 @@ export default function InstagramStyleGallery() {
           rel="noopener noreferrer"
           className="font-sans text-xs font-semibold tracking-widest text-[#111111] hover:text-[#B08D57] transition-colors duration-300 cursor-pointer pb-1 border-b border-[#111111]"
         >
-          @HOKHIYOTI
+          @hokhiyoti_biponi
         </a>
       </div>
 
@@ -38,7 +52,7 @@ export default function InstagramStyleGallery() {
         {IMAGES.map((img, index) => (
           <a
             key={index}
-            href="https://www.instagram.com/hokhiyoti_biponi/"
+            href={LINKS[index]}
             target="_blank"
             rel="noopener noreferrer"
           >

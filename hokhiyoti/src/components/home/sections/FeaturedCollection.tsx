@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AppLink } from '../../../lib/navigation'
-import { collectionService } from '../../../services/data'
+import { supabaseCollectionService } from '../../../services/supabase/collection.service'
 import type { Collection } from '../../../types/collection.types'
-import heroImage from '../../../assets/hero.png'
 
 export default function FeaturedCollection() {
   const [collections, setCollections] = useState<Collection[] | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    collectionService
-      .listCollections()
+    supabaseCollectionService
+      .getFeaturedCollections()
       .then((res) => {
         if (!cancelled) setCollections(res)
       })
@@ -62,7 +61,7 @@ export default function FeaturedCollection() {
               {/* Image */}
               <div className="relative aspect-[3/2] w-full overflow-hidden bg-[#FAF9F6]">
                 <img
-                  src={heroImage}
+                  src={col.imageUrl || '/assets/hero.png'}
                   alt={col.name}
                   className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
                 />
@@ -93,7 +92,7 @@ export default function FeaturedCollection() {
           )
         }) : (
           <div className="md:col-span-2 py-12 text-center text-sm font-sans text-[#666666] tracking-wide">
-            Featured collections will appear here once real store collections are added.
+            Featured collections will appear here once collections are marked as featured in the admin panel.
           </div>
         )}
       </div>

@@ -1,0 +1,7 @@
+name = "hokhiyoti-newsletter"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+# BREVO_LIST_ID will be set here or as a secret
+# BREVO_API_KEY must be set as a secret: wrangler secret put BREVO_API_KEY

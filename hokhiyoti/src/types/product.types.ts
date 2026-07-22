@@ -1,8 +1,30 @@
 export type ProductId = string
 
 export type ProductImage = {
+  id?: string
   url: string
-  alt: string
+  alt?: string
+  sortOrder?: number
+  isCover?: boolean
+}
+
+export type ProductColour = {
+  id?: string
+  name: string
+  hexCode?: string
+  imageId?: string
+}
+
+export type ProductSize = {
+  id?: string
+  size: string
+  stockQuantity?: number
+}
+
+export type ProductHighlight = {
+  id?: string
+  highlight: string
+  position?: number
 }
 
 export type CategoryRef = {
@@ -17,6 +39,8 @@ export type CollectionRef = {
   name: string
 }
 
+export type AvailabilityStatus = 'in_stock' | 'low_stock' | 'out_of_stock'
+
 export type Product = {
   id: ProductId
   name: string
@@ -26,27 +50,37 @@ export type Product = {
   price: number
   comparePrice?: number
 
-  // Keep legacy fields (used by existing UI components) optional for compatibility.
-  currency?: string
-  subtitle?: string
-
+  // Relational sub-entities
   images: ProductImage[]
+  colours: ProductColour[]
+  sizes: ProductSize[]
+  highlights: string[]
 
   category?: CategoryRef
   collection?: CollectionRef
 
-  sizes: string[]
-  colors: string[]
-
+  enableSizes: boolean
   fabric?: string
+  careInstructions?: string
+  shippingInfo?: string
+  returnPolicy?: string
+  additionalInfo?: string
 
   featured: boolean
   newArrival: boolean
   bestSeller: boolean
 
+  stockQuantity: number
+  soldCount: number
+  lowStockLimit: number
+  availabilityStatus: AvailabilityStatus
+  availability?: string // legacy fallback string
+
+  viewsCount: number
   rating: number
-  stock: number
-  availability: string
+  reviewsCount: number
 
   createdAt: string
+  currency?: string
+  subtitle?: string
 }

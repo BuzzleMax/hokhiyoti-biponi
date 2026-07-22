@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Product } from '../types/product.types'
+import type { Category } from '../types/category.types'
 import { supabaseProductService } from '../services/supabase/product.service'
+import { supabaseCategoryService } from '../services/supabase/category.service'
 import ProductCard from '../components/home/ProductCard'
 
 export default function CategoryPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [activeCategory, setActiveCategory] = useState<string>('all')
 
   useEffect(() => {
@@ -14,18 +17,21 @@ export default function CategoryPage() {
       .catch(() => setProducts([]))
   }, [])
 
-  const categories = [
-    { slug: 'all', name: 'ALL PIECES' },
-    ...Array.from(new Map(
-      products
-        .filter((p) => p.category?.slug && p.category?.name)
-        .map((p) => [p.category!.slug, { slug: p.category!.slug, name: p.category!.name.toUpperCase() }]),
-    ).values()),
-  ]
+  useEffect(() => {
+    supabaseCategoryService
+      .listCategories()
+      .then((res) => setCategories(res))
+      .catch(() => setCategories([]))
+  }, [])
 
   const filteredProducts = activeCategory === 'all'
     ? products
     : products.filter((p) => p.category?.slug === activeCategory)
+
+  const categoryTabs = [
+    { slug: 'all', name: 'ALL PIECES' },
+    ...categories.map((c) => ({ slug: c.slug, name: c.name.toUpperCase() })),
+  ]
 
   return (
     <div className="bg-[#FAF9F6] min-h-screen py-16 px-6 md:px-12 max-w-[1400px] mx-auto">
@@ -44,7 +50,7 @@ export default function CategoryPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap justify-center gap-2 mb-16">
-        {categories.map((cat) => (
+        {categoryTabs.map((cat) => (
           <button
             key={cat.slug}
             onClick={() => setActiveCategory(cat.slug)}

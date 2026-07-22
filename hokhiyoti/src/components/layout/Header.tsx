@@ -101,6 +101,14 @@ export default function Header({
               </span>
             </AppLink>
           ))}
+          {/* Search Icon */}
+          <AppLink
+            to="/search"
+            className="inline-flex h-10 w-10 items-center justify-center text-[#111111] hover:text-[#B08D57] transition-all duration-300 hover:scale-110"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+          </AppLink>
           {/* WhatsApp Icon */}
           <a
             href="https://wa.me/916003426591"
