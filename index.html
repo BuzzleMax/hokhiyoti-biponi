@@ -32,6 +32,16 @@
       if (history.scrollRestoration) { history.scrollRestoration = 'manual'; }
     </script>
 
+    <!-- Hash-based routing redirect for GitHub Pages -->
+    <script>
+      (function() {
+        // If no hash is present, redirect to #/ for the homepage
+        if (!window.location.hash) {
+          window.location.hash = '#/';
+        }
+      })();
+    </script>
+
     <meta property="og:title" content="Hokhiyoti Biponi — Storefront" />
     <meta property="og:description" content="Shop collections, categories, and products from Hokhiyoti Biponi." />
     <meta property="og:type" content="website" />
