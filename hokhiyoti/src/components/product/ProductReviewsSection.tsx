@@ -27,7 +27,7 @@ export default function ProductReviewsSection({ productId, productName }: Produc
     rating: 5,
     title: '',
     comment: '',
-    photoFile: null as File | null,
+    photoFiles: [] as File[],
   })
   const [submittedNotice, setSubmittedNotice] = useState(false)
 
@@ -72,13 +72,13 @@ export default function ProductReviewsSection({ productId, productName }: Produc
         rating: formState.rating,
         title: formState.title,
         comment: formState.comment,
-        photoFile: formState.photoFile,
+        photoFiles: formState.photoFiles,
       })
       setSubmittedNotice(true)
       setTimeout(() => {
         setIsModalOpen(false)
         setSubmittedNotice(false)
-        setFormState({ customerName: '', city: '', rating: 5, title: '', comment: '', photoFile: null })
+        setFormState({ customerName: '', city: '', rating: 5, title: '', comment: '', photoFiles: [] })
       }, 2500)
     } catch (err) {
       console.error(err)
@@ -88,6 +88,20 @@ export default function ProductReviewsSection({ productId, productName }: Produc
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selected = Array.from(e.target.files)
+      setFormState((prev) => ({ ...prev, photoFiles: [...prev.photoFiles, ...selected] }))
+    }
+  }
+
+  const removePhotoFile = (idx: number) => {
+    setFormState((prev) => ({
+      ...prev,
+      photoFiles: prev.photoFiles.filter((_, i) => i !== idx),
+    }))
+  }
+
   // Sorted reviews
   const sortedReviews = [...reviews].sort((a, b) => {
     if (sortBy === 'highest') return b.rating - a.rating
@@ -95,7 +109,16 @@ export default function ProductReviewsSection({ productId, productName }: Produc
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 
-  const customerPhotos = reviews.filter((r) => r.photoUrl).map((r) => r.photoUrl!)
+  // Collect all customer photo URLs
+  const customerPhotos: string[] = []
+  reviews.forEach((r) => {
+    if (r.photoUrls && r.photoUrls.length > 0) {
+      customerPhotos.push(...r.photoUrls)
+    } else if (r.photoUrl) {
+      customerPhotos.push(r.photoUrl)
+    }
+  })
+
   const hasApprovedReviews = reviews.length > 0
 
   return (
@@ -122,11 +145,11 @@ export default function ProductReviewsSection({ productId, productName }: Produc
       {loading ? (
         <p className="text-center py-8 text-xs text-gray-400 animate-pulse">Loading reviews...</p>
       ) : !hasApprovedReviews ? (
-        /* PART 2: Zero Approved Reviews Display */
+        /* Zero Approved Reviews Display - Strictly no stars, no 0 rating, no 0 reviews */
         <div className="text-center py-12 px-6 bg-white rounded-2xl border border-dashed border-gray-200 space-y-3">
           <MessageSquare className="w-10 h-10 text-[#B08D57] mx-auto opacity-70" />
           <h3 className="font-heading text-xl font-medium text-[#111111]">No reviews yet</h3>
-          <p className="font-sans text-xs text-gray-500 font-light">Be the first to review this product.</p>
+          <p className="font-sans text-xs text-gray-500 font-light">Be the first customer to review this product.</p>
           <div className="pt-2">
             <button
               onClick={() => setIsModalOpen(true)}
@@ -138,7 +161,7 @@ export default function ProductReviewsSection({ productId, productName }: Produc
           </div>
         </div>
       ) : (
-        /* Approved Reviews Rating Breakdown & List */
+        /* Approved Reviews Display */
         <div className="space-y-10">
           {/* Summary Card */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 p-6 md:p-8 rounded-2xl bg-[#FAF9F6] border border-[rgba(0,0,0,0.05)]">
@@ -255,9 +278,14 @@ export default function ProductReviewsSection({ productId, productName }: Produc
                 {review.title && <h4 className="font-sans text-sm font-semibold text-[#111111]">{review.title}</h4>}
                 <p className="font-sans text-xs text-[#444444] leading-relaxed font-light">{review.comment}</p>
 
-                {review.photoUrl && (
-                  <div className="w-24 aspect-square rounded-lg overflow-hidden border border-black/10 mt-2">
-                    <img src={review.photoUrl} alt="Review attachment" className="w-full h-full object-cover" />
+                {/* Multiple Photos Grid */}
+                {review.photoUrls && review.photoUrls.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {review.photoUrls.map((url, idx) => (
+                      <div key={idx} className="w-20 aspect-square rounded-lg overflow-hidden border border-black/10">
+                        <img src={url} alt={`Review attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -372,13 +400,30 @@ export default function ProductReviewsSection({ productId, productName }: Produc
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#111111] mb-1">Add Photo (Optional)</label>
+                  <label className="block text-xs font-semibold text-[#111111] mb-1">Add Photos (Multiple Optional)</label>
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setFormState((prev) => ({ ...prev, photoFile: e.target.files?.[0] || null }))}
+                    multiple
+                    onChange={handleFileChange}
                     className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#FAF9F6] file:text-[#111111] hover:file:bg-[#B08D57] hover:file:text-white"
                   />
+                  {formState.photoFiles.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {formState.photoFiles.map((file, idx) => (
+                        <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-black/10 bg-gray-50 flex items-center justify-center text-[10px] p-1">
+                          <span className="truncate">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => removePhotoFile(idx)}
+                            className="absolute top-0.5 right-0.5 bg-black/70 text-white rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2">

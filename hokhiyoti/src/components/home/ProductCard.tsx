@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'wouter'
 import type { Product } from '../../types/product.types'
-import { formatPriceINR, getWhatsAppProductUrl } from '../../lib/utils'
+import { formatPriceINR, getWhatsAppProductUrl, calculateCommission } from '../../lib/utils'
+import { supabaseOrderService } from '../../services/supabase/order.service'
 
 export default function ProductCard({ product }: { product: Product }) {
   const img = product.images?.[0]
@@ -15,6 +16,27 @@ export default function ProductCard({ product }: { product: Product }) {
     productUrl: fullUrl,
   })
 
+  const handleBuyClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    try {
+      const commissionPct = await supabaseOrderService.getCommissionPercentage()
+      const { commissionAmount, sellerEarnings } = calculateCommission(product.price, commissionPct)
+
+      await supabaseOrderService.createOrder({
+        productId: product.id,
+        productName: product.name,
+        productPrice: product.price,
+        commissionPercentage: commissionPct,
+        commissionAmount,
+        sellerEarnings,
+        productUrl: fullUrl,
+      })
+    } catch (err) {
+      console.error('Failed to save order, opening WhatsApp anyway:', err)
+    }
+    window.open(whatsappUrl, '_blank', 'noreferrer')
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -23,19 +45,17 @@ export default function ProductCard({ product }: { product: Product }) {
       transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
       className="group flex flex-col bg-[#FFFFFF] rounded-2xl overflow-hidden shadow-soft border border-[rgba(0,0,0,0.03)]"
     >
-      {/* 4:5 Image Container with hover zoom */}
+      {/* Image Container */}
       <Link to={targetPath} className="relative block aspect-[4/5] w-full overflow-hidden bg-[#FAF9F6]">
         <div className="relative aspect-[4/5] bg-[#FAF9F6]">
           {img ? (
             <>
-              {/* Primary Image */}
               <img
                 src={img.url}
                 alt={img.alt || product.name}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105 group-hover:opacity-0"
               />
-              {/* Hover Image */}
               {hoverImg && (
                 <img
                   src={hoverImg.url}
@@ -51,15 +71,11 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
           )}
         </div>
-
-        {/* Category tag */}
         {product.category?.name && (
           <div className="absolute top-4 left-4 bg-[#111111] text-[#FAF9F6] font-sans text-[9px] tracking-widest font-medium py-1 px-3.5 rounded-full z-10">
             {product.category.name.toUpperCase()}
           </div>
         )}
-
-        {/* Stock Badge if Low or Out of Stock */}
         {product.availabilityStatus === 'out_of_stock' && (
           <div className="absolute top-4 right-4 bg-red-600 text-white font-sans text-[9px] font-bold tracking-widest uppercase py-1 px-3 rounded-full z-10">
             OUT OF STOCK
@@ -76,24 +92,16 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="p-6 flex flex-col flex-1 bg-white">
         <div className="flex flex-col gap-1 mb-4">
           <Link to={targetPath} className="hover:text-[#B08D57] transition-colors duration-300">
-            <h3 className="font-heading text-lg font-medium text-[#111111] leading-tight">
-              {product.name}
-            </h3>
+            <h3 className="font-heading text-lg font-medium text-[#111111] leading-tight">{product.name}</h3>
           </Link>
-          <p className="font-sans text-xs text-[#666666] line-clamp-1 leading-normal font-light">
-            {product.description}
-          </p>
+          <p className="font-sans text-xs text-[#666666] line-clamp-1 leading-normal font-light">{product.description}</p>
         </div>
 
         <div className="mt-auto flex items-center justify-between pt-4 border-t border-[rgba(0,0,0,0.04)]">
           <div className="flex items-baseline gap-2">
-            <span className="font-sans text-sm font-semibold text-[#111111]">
-              {formatPriceINR(product.price)}
-            </span>
+            <span className="font-sans text-sm font-semibold text-[#111111]">{formatPriceINR(product.price)}</span>
             {product.comparePrice && product.comparePrice > product.price && (
-              <span className="font-sans text-xs text-gray-400 line-through">
-                {formatPriceINR(product.comparePrice)}
-              </span>
+              <span className="font-sans text-xs text-gray-400 line-through">{formatPriceINR(product.comparePrice)}</span>
             )}
           </div>
 
@@ -108,6 +116,7 @@ export default function ProductCard({ product }: { product: Product }) {
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={handleBuyClick}
               className="inline-flex h-10 px-5 rounded-full bg-[#111111] text-[#FAF9F6] hover:bg-[#B08D57] transition-colors duration-300 font-sans text-[10px] font-semibold tracking-widest items-center"
               aria-label={`Buy ${product.name} on WhatsApp`}
             >

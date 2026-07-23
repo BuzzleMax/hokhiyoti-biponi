@@ -1,0 +1,24 @@
+{
+  "name": "Hokhiyoti Biponi — Premium Assamese Handloom Collection",
+  "short_name": "Hokhiyoti Biponi",
+  "description": "Shop collections, categories, and products from Hokhiyoti Biponi. Handwoven Mekhela Chador crafted by Assamese artisans.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6A1E1E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

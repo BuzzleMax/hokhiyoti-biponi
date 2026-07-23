@@ -7,6 +7,7 @@ export type ProductReview = {
   title?: string
   comment: string
   photoUrl?: string
+  photoUrls?: string[]
   isVerifiedPurchase: boolean
   isApproved: boolean
   helpfulCount: number

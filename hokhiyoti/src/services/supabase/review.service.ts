@@ -1,9 +1,15 @@
 import { supabase } from '../../lib/supabase'
 import type { ProductReview, ReviewSummary } from '../../types/review.types'
 
-// Helper to convert database row to ProductReview
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToReview(row: any): ProductReview {
+  let photoUrls: string[] = []
+  if (Array.isArray(row.review_images) && row.review_images.length > 0) {
+    photoUrls = row.review_images.map((img: any) => img.image_url)
+  } else if (row.photo_url) {
+    photoUrls = [row.photo_url]
+  }
+
   return {
     id: row.id,
     productId: row.product_id,
@@ -12,7 +18,8 @@ function rowToReview(row: any): ProductReview {
     rating: Number(row.rating || 5),
     title: row.title || undefined,
     comment: row.comment,
-    photoUrl: row.photo_url || undefined,
+    photoUrl: row.photo_url || photoUrls[0] || undefined,
+    photoUrls,
     isVerifiedPurchase: Boolean(row.is_verified_purchase),
     isApproved: Boolean(row.is_approved),
     helpfulCount: Number(row.helpful_count || 0),
@@ -25,7 +32,7 @@ export const supabaseReviewService = {
   async getApprovedReviews(productId: string): Promise<ProductReview[]> {
     const { data, error } = await supabase
       .from('product_reviews')
-      .select('*')
+      .select('*, review_images(image_url, sort_order)')
       .eq('product_id', productId)
       .eq('is_approved', true)
       .order('created_at', { ascending: false })
@@ -69,13 +76,23 @@ export const supabaseReviewService = {
   // Upload review photo to Supabase storage
   async uploadReviewPhoto(file: File): Promise<string> {
     const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`
+    const fileName = `rev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`
 
     const { error } = await supabase.storage.from('review-images').upload(fileName, file)
     if (error) throw error
 
     const { data } = supabase.storage.from('review-images').getPublicUrl(fileName)
     return data.publicUrl
+  },
+
+  // Upload multiple review photos
+  async uploadReviewPhotos(files: File[]): Promise<string[]> {
+    const urls: string[] = []
+    for (const file of files) {
+      const url = await this.uploadReviewPhoto(file)
+      urls.push(url)
+    }
+    return urls
   },
 
   // Submit review from frontend (Enters Pending queue: is_approved = false)
@@ -87,10 +104,14 @@ export const supabaseReviewService = {
     title?: string
     comment: string
     photoFile?: File | null
+    photoFiles?: File[] | null
   }): Promise<ProductReview> {
-    let photoUrl = ''
-    if (reviewData.photoFile) {
-      photoUrl = await this.uploadReviewPhoto(reviewData.photoFile)
+    let uploadedUrls: string[] = []
+    if (reviewData.photoFiles && reviewData.photoFiles.length > 0) {
+      uploadedUrls = await this.uploadReviewPhotos(reviewData.photoFiles)
+    } else if (reviewData.photoFile) {
+      const singleUrl = await this.uploadReviewPhoto(reviewData.photoFile)
+      uploadedUrls = [singleUrl]
     }
 
     const row = {
@@ -100,7 +121,7 @@ export const supabaseReviewService = {
       rating: reviewData.rating,
       title: reviewData.title || null,
       comment: reviewData.comment,
-      photo_url: photoUrl || null,
+      photo_url: uploadedUrls[0] || null,
       is_approved: false, // Default to Pending moderation
       is_verified_purchase: false,
       helpful_count: 0,
@@ -108,10 +129,20 @@ export const supabaseReviewService = {
 
     const { data, error } = await supabase.from('product_reviews').insert(row).select().single()
     if (error) throw error
-    return rowToReview(data)
+
+    if (uploadedUrls.length > 0) {
+      const imgRows = uploadedUrls.map((url, idx) => ({
+        review_id: data.id,
+        image_url: url,
+        sort_order: idx,
+      }))
+      await supabase.from('review_images').insert(imgRows)
+    }
+
+    return rowToReview({ ...data, review_images: uploadedUrls.map((u, i) => ({ image_url: u, sort_order: i })) })
   },
 
-  // Increment helpful count with anti-spam check via localStorage
+  // Increment helpful count
   async voteHelpful(reviewId: string): Promise<number> {
     const storageKey = `helpful_voted_${reviewId}`
     if (localStorage.getItem(storageKey)) {
@@ -132,7 +163,7 @@ export const supabaseReviewService = {
   async getAllReviewsForAdmin(): Promise<ProductReview[]> {
     const { data, error } = await supabase
       .from('product_reviews')
-      .select('*')
+      .select('*, review_images(image_url, sort_order)')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -149,20 +180,6 @@ export const supabaseReviewService = {
 
   async toggleVerifiedPurchase(reviewId: string, isVerified: boolean): Promise<void> {
     const { error } = await supabase.from('product_reviews').update({ is_verified_purchase: isVerified }).eq('id', reviewId)
-    if (error) throw error
-  },
-
-  async updateReview(reviewId: string, updates: Partial<ProductReview>): Promise<void> {
-    const row = {
-      customer_name: updates.customerName,
-      city: updates.city,
-      rating: updates.rating,
-      title: updates.title,
-      comment: updates.comment,
-      is_approved: updates.isApproved,
-      is_verified_purchase: updates.isVerifiedPurchase,
-    }
-    const { error } = await supabase.from('product_reviews').update(row).eq('id', reviewId)
     if (error) throw error
   },
 

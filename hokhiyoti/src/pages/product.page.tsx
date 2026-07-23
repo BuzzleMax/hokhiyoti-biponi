@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'wouter'
 import { ChevronRight, Share2, Shield, Truck, RotateCcw, Check } from 'lucide-react'
 import { supabaseProductService } from '../services/supabase/product.service'
+import { supabaseOrderService } from '../services/supabase/order.service'
 import type { Product } from '../types/product.types'
-import { formatPriceINR, getWhatsAppProductUrl } from '../lib/utils'
+import { formatPriceINR, getWhatsAppProductUrl, calculateCommission } from '../lib/utils'
 import { useSEO } from '../hooks/useSEO'
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed'
 
@@ -35,13 +36,15 @@ export default function ProductPage() {
       .then((found) => {
         if (!active) return
         setProduct(found)
-        if (found.sizes && found.sizes.length > 0 && found.sizes[0]) {
-          setSelectedSize(found.sizes[0].size)
+        if (found) {
+          if (found.sizes && found.sizes.length > 0 && found.sizes[0]) {
+            setSelectedSize(found.sizes[0].size)
+          }
+          if (found.colours && found.colours.length > 0 && found.colours[0]) {
+            setSelectedColor(found.colours[0].name)
+          }
+          addRecentlyViewed(found)
         }
-        if (found.colours && found.colours.length > 0 && found.colours[0]) {
-          setSelectedColor(found.colours[0].name)
-        }
-        addRecentlyViewed(found)
         setLoading(false)
       })
       .catch((err) => {
@@ -113,6 +116,29 @@ export default function ProductPage() {
     productUrl: fullUrl,
   })
 
+  const handleBuyClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    try {
+      const commissionPct = await supabaseOrderService.getCommissionPercentage()
+      const { commissionAmount, sellerEarnings } = calculateCommission(product.price, commissionPct)
+
+      await supabaseOrderService.createOrder({
+        productId: product.id,
+        productName: product.name,
+        productPrice: product.price,
+        commissionPercentage: commissionPct,
+        commissionAmount,
+        sellerEarnings,
+        selectedColour: selectedColor,
+        selectedSize: product.enableSizes ? selectedSize : undefined,
+        productUrl: fullUrl,
+      })
+    } catch (err) {
+      console.error('Failed to save order, opening WhatsApp anyway:', err)
+    }
+    window.open(whatsappUrl, '_blank', 'noreferrer')
+  }
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({ title: product.name, url: fullUrl }).catch(() => {})
@@ -144,9 +170,9 @@ export default function ProductPage() {
 
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
-        {/* Left Gallery */}
+        {/* Left Media Gallery */}
         <div className="lg:col-span-7">
-          <ProductGallery images={product.images} productName={product.name} />
+          <ProductGallery images={product.images} videos={product.videos} productName={product.name} />
         </div>
 
         {/* Right Product Details & Buy Section */}
@@ -216,10 +242,10 @@ export default function ProductPage() {
             </p>
           )}
 
-          {/* Bullet Highlights - renders only if highlights exist */}
+          {/* Bullet Highlights */}
           <ProductHighlights highlights={product.highlights} />
 
-          {/* Colours Chip Selector - renders only if colours exist */}
+          {/* Colours Chip Selector */}
           {product.colours && product.colours.length > 0 && (
             <div className="space-y-3">
               <span className="font-sans text-[11px] font-semibold tracking-widest text-[#111111] uppercase block">
@@ -283,6 +309,7 @@ export default function ProductPage() {
               href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={handleBuyClick}
               className="flex w-full h-14 rounded-full bg-[#111111] text-[#FAF9F6] hover:bg-[#B08D57] transition-all duration-300 font-sans text-xs font-semibold tracking-[0.2em] uppercase items-center justify-center shadow-md hover:shadow-lg gap-2"
               aria-label={`Buy ${product.name} on WhatsApp`}
             >
@@ -293,7 +320,7 @@ export default function ProductPage() {
             </p>
           </div>
 
-          {/* Assurances - renders ONLY if admin provided policies/info */}
+          {/* Assurances */}
           {hasAssurances && (
             <div className="pt-6 border-t border-[rgba(0,0,0,0.06)] space-y-3.5">
               {product.shippingInfo && (

@@ -350,6 +350,90 @@ EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 -- ============================================================================
+-- 10. ORDERS TABLE (Marketplace Commission System)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  product_id UUID NOT NULL,
+  product_name TEXT NOT NULL,
+  product_price DECIMAL(10, 2) NOT NULL,
+  commission_percentage DECIMAL(5, 2) DEFAULT 10.00,
+  commission_amount DECIMAL(10, 2) DEFAULT 0.00,
+  seller_earnings DECIMAL(10, 2) DEFAULT 0.00,
+  selected_colour TEXT,
+  selected_size TEXT,
+  product_url TEXT,
+  customer_details JSONB DEFAULT '{}'::jsonb,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'processing', 'failed')),
+  payment_method TEXT,
+  reference_number TEXT,
+  paid_at TIMESTAMP WITH TIME ZONE,
+  notes TEXT
+);
+
+DO $$ BEGIN
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS selected_colour TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS selected_size TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS product_url TEXT;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'orders_product_id_fkey') THEN
+    ALTER TABLE orders ADD CONSTRAINT orders_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
+  END IF;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- ============================================================================
+-- 11. MARKETPLACE SETTINGS TABLE (Global commission defaults)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS marketplace_settings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  default_commission_percentage DECIMAL(5, 2) DEFAULT 10.00,
+  platform_name TEXT DEFAULT 'Hokhiyoti Biponi',
+  currency TEXT DEFAULT 'INR'
+);
+
+DO $$ BEGIN
+  ALTER TABLE marketplace_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- Insert default marketplace settings
+INSERT INTO marketplace_settings (default_commission_percentage, platform_name, currency)
+VALUES (10.00, 'Hokhiyoti Biponi', 'INR')
+ON CONFLICT (id) DO NOTHING;
+
+-- Order RLS
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public insert orders" ON orders;
+DROP POLICY IF EXISTS "Public read orders" ON orders;
+DROP POLICY IF EXISTS "Admin modify orders" ON orders;
+CREATE POLICY "Public insert orders" ON orders FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Public read orders" ON orders FOR SELECT TO public USING (true);
+CREATE POLICY "Admin modify orders" ON orders FOR ALL TO public USING (true);
+
+-- Marketplace Settings RLS
+ALTER TABLE marketplace_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public read marketplace_settings" ON marketplace_settings;
+DROP POLICY IF EXISTS "Public modify marketplace_settings" ON marketplace_settings;
+CREATE POLICY "Public read marketplace_settings" ON marketplace_settings FOR SELECT TO public USING (true);
+CREATE POLICY "Public modify marketplace_settings" ON marketplace_settings FOR ALL TO public USING (true);
+
+-- Indexes for orders
+CREATE INDEX IF NOT EXISTS idx_orders_product_id ON orders(product_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
+
+-- ============================================================================
 -- AUTOMATED TRIGGERS & FUNCTIONS
 -- ============================================================================
 
@@ -390,6 +474,12 @@ CREATE TRIGGER update_collections_updated_at BEFORE UPDATE ON collections FOR EA
 
 DROP TRIGGER IF EXISTS update_newsletter_subscribers_updated_at ON newsletter_subscribers;
 CREATE TRIGGER update_newsletter_subscribers_updated_at BEFORE UPDATE ON newsletter_subscribers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_marketplace_settings_updated_at ON marketplace_settings;
+CREATE TRIGGER update_marketplace_settings_updated_at BEFORE UPDATE ON marketplace_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- HIGH-PERFORMANCE INDEXES

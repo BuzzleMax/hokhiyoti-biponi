@@ -39,6 +39,10 @@ export const supabaseCategoryService = {
     return (data || []).map(rowToCategory)
   },
 
+  async getCategories(): Promise<Category[]> {
+    return this.listCategories()
+  },
+
   async getCategoryBySlug(slug: string): Promise<Category> {
     const { data, error } = await supabase
       .from('categories')
@@ -87,4 +91,3 @@ export const supabaseCategoryService = {
     if (error) throw error
   },
 }
-

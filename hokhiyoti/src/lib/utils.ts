@@ -4,6 +4,15 @@ export function cn(...classes: Array<string | undefined | null | false>) {
 
 const WHATSAPP_PHONE = '916003426591'
 
+export function calculateCommission(
+  price: number,
+  commissionPercentage: number
+): { commissionAmount: number; sellerEarnings: number } {
+  const commissionAmount = Math.round(price * (commissionPercentage / 100))
+  const sellerEarnings = price - commissionAmount
+  return { commissionAmount, sellerEarnings }
+}
+
 export function formatPriceINR(price: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',

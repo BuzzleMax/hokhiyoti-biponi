@@ -8,6 +8,15 @@ export type ProductImage = {
   isCover?: boolean
 }
 
+export type ProductVideo = {
+  id?: string
+  url: string
+  thumbnailUrl?: string
+  alt?: string
+  sortOrder?: number
+  isCover?: boolean
+}
+
 export type ProductColour = {
   id?: string
   name: string
@@ -50,8 +59,9 @@ export type Product = {
   price: number
   comparePrice?: number
 
-  // Relational sub-entities
+  // Relational / Array sub-entities
   images: ProductImage[]
+  videos: ProductVideo[]
   colours: ProductColour[]
   sizes: ProductSize[]
   highlights: string[]
@@ -66,19 +76,25 @@ export type Product = {
   returnPolicy?: string
   additionalInfo?: string
 
+  commissionPercentage?: number
   featured: boolean
   newArrival: boolean
   bestSeller: boolean
+  active?: boolean
+  archived?: boolean
 
   stockQuantity: number
   soldCount: number
   lowStockLimit: number
   availabilityStatus: AvailabilityStatus
-  availability?: string // legacy fallback string
+  availability?: string
 
   viewsCount: number
   rating: number
   reviewsCount: number
+
+  seoTitle?: string
+  seoDescription?: string
 
   createdAt: string
   currency?: string
