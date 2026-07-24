@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "buzzlemax-api",
+  "compatibility_date": "2026-07-24",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "hokhiyoti"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
