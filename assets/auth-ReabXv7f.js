@@ -1,0 +1,1 @@
+import{t as e}from"./supabase-BUz8mU0i.js";async function t(t,n){let{data:r,error:i}=await e.auth.signInWithPassword({email:t,password:n});return{data:r,error:i}}async function n(){let{error:t}=await e.auth.signOut();return{error:t}}export{n,t};
