@@ -1,4 +1,6 @@
 import { supabase } from '../../lib/supabase'
+import { applyCursorFilter } from '../../lib/cursor-pagination'
+import type { PaginationCursor } from '../../types/pagination.types'
 export { supabaseCategoryService } from './category.service'
 export { supabaseCollectionService } from './collection.service'
 import type {
@@ -181,6 +183,13 @@ export const supabaseProductService = {
     product_highlights (id, highlight, position)
   `,
 
+  listSelectQuery: `
+    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_slug, collection_slug, created_at, featured, new_arrival, best_seller,
+    categories (id, slug, name),
+    collections (id, slug, name),
+    product_images (id, image_url, alt_text, sort_order, is_cover)
+  `,
+
   async getProducts(params?: {
     categorySlug?: string
     collectionSlug?: string
@@ -188,8 +197,12 @@ export const supabaseProductService = {
     newArrival?: boolean
     bestSeller?: boolean
     includeInactive?: boolean
+    heavy?: boolean
+    limit?: number
+    cursor?: PaginationCursor | null
   }): Promise<Product[]> {
-    let query = supabase.from('products').select(this.selectQuery)
+    const selector = params?.heavy ? this.selectQuery : this.listSelectQuery
+    let query = supabase.from('products').select(selector)
 
     if (!params?.includeInactive) {
       query = query.eq('active', true).eq('archived', false)
@@ -211,7 +224,14 @@ export const supabaseProductService = {
       query = query.eq('best_seller', true)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
+    query = applyCursorFilter(query, params?.cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (params?.limit !== undefined) {
+      query = query.limit(params.limit)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.warn('Supabase product query error:', error)
@@ -221,29 +241,24 @@ export const supabaseProductService = {
     return (data || []).map(rowToProduct)
   },
 
-  async getBestSellers(limit?: number): Promise<Product[]> {
-    const list = await this.getProducts({ bestSeller: true })
-    return limit ? list.slice(0, limit) : list
+  async getBestSellers(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ bestSeller: true, limit, cursor })
   },
 
-  async getFeaturedProducts(limit?: number): Promise<Product[]> {
-    const list = await this.getProducts({ featured: true })
-    return limit ? list.slice(0, limit) : list
+  async getFeaturedProducts(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ featured: true, limit, cursor })
   },
 
-  async getNewArrivals(limit?: number): Promise<Product[]> {
-    const list = await this.getProducts({ newArrival: true })
-    return limit ? list.slice(0, limit) : list
+  async getNewArrivals(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ newArrival: true, limit, cursor })
   },
 
-  async getProductsByCategory(categorySlug: string, limit?: number): Promise<Product[]> {
-    const list = await this.getProducts({ categorySlug })
-    return limit ? list.slice(0, limit) : list
+  async getProductsByCategory(categorySlug: string, limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ categorySlug, limit, cursor })
   },
 
-  async getProductsByCollection(collectionSlug: string, limit?: number): Promise<Product[]> {
-    const list = await this.getProducts({ collectionSlug })
-    return limit ? list.slice(0, limit) : list
+  async getProductsByCollection(collectionSlug: string, limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ collectionSlug, limit, cursor })
   },
 
   async getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {

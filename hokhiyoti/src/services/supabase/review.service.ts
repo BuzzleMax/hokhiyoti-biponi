@@ -1,4 +1,6 @@
 import { supabase } from '../../lib/supabase'
+import { applyCursorFilter } from '../../lib/cursor-pagination'
+import type { PaginationCursor } from '../../types/pagination.types'
 import type { ProductReview, ReviewSummary } from '../../types/review.types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,14 +30,26 @@ function rowToReview(row: any): ProductReview {
 }
 
 export const supabaseReviewService = {
-  // Get approved reviews for product page display
-  async getApprovedReviews(productId: string): Promise<ProductReview[]> {
-    const { data, error } = await supabase
+  // Get approved reviews for product page display (cursor-paginated)
+  async getApprovedReviews(
+    productId: string,
+    limit?: number,
+    cursor?: PaginationCursor | null
+  ): Promise<ProductReview[]> {
+    let query = supabase
       .from('product_reviews')
       .select('*, review_images(image_url, sort_order)')
       .eq('product_id', productId)
       .eq('is_approved', true)
-      .order('created_at', { ascending: false })
+
+    query = applyCursorFilter(query, cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (limit !== undefined) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.warn('Reviews table query warning:', error)
@@ -160,11 +174,22 @@ export const supabaseReviewService = {
   },
 
   // ADMIN METHODS
-  async getAllReviewsForAdmin(): Promise<ProductReview[]> {
-    const { data, error } = await supabase
+  async getAllReviewsForAdmin(
+    limit?: number,
+    cursor?: PaginationCursor | null
+  ): Promise<ProductReview[]> {
+    let query = supabase
       .from('product_reviews')
       .select('*, review_images(image_url, sort_order)')
-      .order('created_at', { ascending: false })
+
+    query = applyCursorFilter(query, cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (limit !== undefined) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.warn('Failed to load admin reviews:', error)

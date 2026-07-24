@@ -4,24 +4,50 @@ import { supabaseProductService } from '../../../services/supabase/product.servi
 import ProductCard from '../ProductCard'
 
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState<Product[] | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [cursors, setCursors] = useState<Array<{ createdAt: string; id: string } | null>>([null])
+
+  const limit = 9
+
+  const loadMore = async (isInitial = false) => {
+    if (loading) return
+    setLoading(true)
+    const activeCursor = isInitial ? null : cursors[cursors.length - 1]
+    try {
+      const res = await supabaseProductService.getFeaturedProducts(limit, activeCursor)
+      if (res.length > 0) {
+        setProducts((prev) => {
+          const prevIds = new Set(prev.map((p) => p.id))
+          const filtered = res.filter((p) => !prevIds.has(p.id))
+          return isInitial ? filtered : [...prev, ...filtered]
+        })
+        const lastItem = res[res.length - 1]
+        const nextCursor = lastItem ? { createdAt: lastItem.createdAt, id: lastItem.id } : null
+        setCursors((prev) => [...prev, nextCursor])
+        if (res.length < limit) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load featured products:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleShowLess = () => {
+    if (products.length <= limit) return
+    setProducts((prev) => prev.slice(0, prev.length - limit))
+    setCursors((prev) => prev.slice(0, prev.length - 1))
+    setHasMore(true)
+  }
 
   useEffect(() => {
-    let cancelled = false
-    supabaseProductService
-      .getFeaturedProducts()
-      .then((res) => {
-        if (!cancelled) {
-          setProducts(res.length > 0 ? res : [])
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setProducts([])
-      })
-
-    return () => {
-      cancelled = true
-    }
+    loadMore(true)
   }, [])
 
   return (
@@ -39,17 +65,53 @@ export default function FeaturedProducts() {
       </div>
 
       {/* Grid of Product Cards */}
-      {products && products.length > 0 ? (
+      {products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center text-sm font-sans text-[#666666] tracking-wide">
-          Curating featured items. Please check back shortly.
+        !loading && (
+          <div className="py-12 text-center text-sm font-sans text-[#666666] tracking-wide">
+            Curating featured items. Please check back shortly.
+          </div>
+        )
+      )}
+
+      {/* Loading Spinner */}
+      {loading && (
+        <div className="py-8 flex justify-center items-center">
+          <div className="w-6 h-6 border border-[#B08D57]/20 border-t-[#B08D57] rounded-full animate-spin" />
         </div>
       )}
+
+      {/* Show More / Show Less Controls */}
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {hasMore && !loading && (
+          <button
+            onClick={() => loadMore(false)}
+            className="h-11 px-8 rounded-full bg-[#111111] hover:bg-[#B08D57] text-[#FAF9F6] font-sans text-xs font-semibold tracking-widest uppercase transition-colors cursor-pointer"
+          >
+            Show More
+          </button>
+        )}
+        
+        {products.length > limit && (
+          <button
+            onClick={handleShowLess}
+            className="h-11 px-8 rounded-full border border-[#111111] hover:bg-[#111111] hover:text-[#FAF9F6] text-[#111111] font-sans text-xs font-semibold tracking-widest uppercase transition-colors cursor-pointer"
+          >
+            Show Less
+          </button>
+        )}
+
+        {!hasMore && products.length > 0 && (
+          <span className="font-sans text-xs text-[#B08D57] tracking-widest font-medium">
+            ✨ You've reached the end of our collection.
+          </span>
+        )}
+      </div>
     </section>
   )
 }

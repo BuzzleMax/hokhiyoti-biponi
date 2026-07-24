@@ -1,4 +1,6 @@
 import { supabase } from '../../lib/supabase'
+import { applyCursorFilter, fetchAllWithCursor } from '../../lib/cursor-pagination'
+import type { PaginationCursor } from '../../types/pagination.types'
 import type {
   Order,
   CreateOrderInput,
@@ -82,16 +84,30 @@ function deriveCommissionStatus(status: OrderStatus): CommissionStatus {
   }
 }
 
+let cachedCommissionPct: number | null = null
+
+export type GetOrdersParams = {
+  includeArchived?: boolean
+  tab?: 'active' | 'archived' | 'followup'
+  status?: OrderStatus
+  search?: string
+  limit?: number
+  cursor?: PaginationCursor | null
+}
+
 export const supabaseOrderService = {
   /**
    * Fetch the current marketplace commission percentage from marketplace_settings.
    * Falls back to 10% if not set.
    */
-  async getCommissionPercentage(): Promise<number> {
+  async getCommissionPercentage(bypassCache = false): Promise<number> {
+    if (cachedCommissionPct !== null && !bypassCache) {
+      return cachedCommissionPct
+    }
     try {
       const { data, error } = await supabase
         .from('marketplace_settings')
-        .select('*')
+        .select('commission_percentage, default_commission_percentage')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -100,7 +116,9 @@ export const supabaseOrderService = {
         return DEFAULT_COMMISSION_FALLBACK
       }
       const pct = data.commission_percentage ?? data.default_commission_percentage
-      return pct != null ? Number(pct) : DEFAULT_COMMISSION_FALLBACK
+      const finalPct = pct != null ? Number(pct) : DEFAULT_COMMISSION_FALLBACK
+      cachedCommissionPct = finalPct
+      return finalPct
     } catch {
       return DEFAULT_COMMISSION_FALLBACK
     }
@@ -110,6 +128,7 @@ export const supabaseOrderService = {
    * Update the marketplace commission percentage in marketplace_settings.
    */
   async setCommissionPercentage(percentage: number): Promise<void> {
+    cachedCommissionPct = percentage
     const { data: existing } = await supabase
       .from('marketplace_settings')
       .select('id')
@@ -186,13 +205,51 @@ export const supabaseOrderService = {
   },
 
   /**
-   * Fetch all orders (admin panel), most recent first.
+   * Fetch orders (admin panel) with cursor-based keyset pagination.
+   * Supports tab filters and optional server-side search.
    */
-  async getOrders(): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false })
+  async getOrders(params?: GetOrdersParams | boolean, limit?: number, cursor?: PaginationCursor | null): Promise<Order[]> {
+    const opts: GetOrdersParams =
+      typeof params === 'boolean'
+        ? { includeArchived: params, limit, cursor }
+        : { ...(params || {}), limit: params?.limit ?? limit, cursor: params?.cursor ?? cursor }
+
+    let query = supabase.from('orders').select('*')
+
+    if (opts.tab === 'archived' || opts.includeArchived) {
+      if (opts.tab === 'archived') {
+        query = query.eq('order_status', 'archived')
+      } else if (!opts.includeArchived) {
+        query = query.neq('order_status', 'archived')
+      }
+    } else if (opts.tab === 'followup') {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      query = query
+        .eq('order_status', 'lead_created')
+        .lte('created_at', cutoff)
+    } else {
+      query = query.neq('order_status', 'archived')
+    }
+
+    if (opts.status) {
+      query = query.eq('order_status', opts.status)
+    }
+
+    const search = opts.search?.trim()
+    if (search) {
+      query = query.or(
+        `product_name.ilike.%${search}%,customer_name.ilike.%${search}%,order_number.ilike.%${search}%,id.ilike.%${search}%`
+      )
+    }
+
+    query = applyCursorFilter(query, opts.cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (opts.limit !== undefined) {
+      query = query.limit(opts.limit)
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
     return (data || []).map(rowToOrder)
@@ -279,6 +336,7 @@ export const supabaseOrderService = {
 
   /**
    * Get the timeline for a specific order (status history).
+   * Per-order volume is small; no pagination needed.
    */
   async getOrderTimeline(orderId: string): Promise<OrderTimeline[]> {
     const { data, error } = await supabase
@@ -292,16 +350,73 @@ export const supabaseOrderService = {
   },
 
   /**
-   * Fetch seller payouts/orders.
+   * Fetch seller payout orders with cursor pagination.
+   * Only returns orders with active commission lifecycle.
    */
-  async getPayouts(): Promise<Order[]> {
-    const { data, error } = await supabase
+  async getPayouts(
+    limit?: number,
+    cursor?: PaginationCursor | null,
+    paymentStatus?: PaymentStatus | 'all'
+  ): Promise<Order[]> {
+    let query = supabase
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false })
+      .neq('order_status', 'archived')
+      .neq('commission_status', 'none')
+
+    if (paymentStatus && paymentStatus !== 'all') {
+      query = query.eq('payment_status', paymentStatus)
+    }
+
+    query = applyCursorFilter(query, cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (limit !== undefined) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
     return (data || []).map(rowToOrder)
+  },
+
+  /**
+   * Commission history — cursor-paginated audit trail of commission-bearing orders.
+   */
+  async getCommissionHistory(
+    limit?: number,
+    cursor?: PaginationCursor | null,
+    commissionStatus?: CommissionStatus | 'all'
+  ): Promise<Order[]> {
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .neq('commission_status', 'none')
+
+    if (commissionStatus && commissionStatus !== 'all') {
+      query = query.eq('commission_status', commissionStatus)
+    }
+
+    query = applyCursorFilter(query, cursor)
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+
+    if (limit !== undefined) {
+      query = query.limit(limit)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+    return (data || []).map(rowToOrder)
+  },
+
+  /** Load all payout records via cursor pages (for CSV export — no OFFSET). */
+  async getAllPayoutsForExport(): Promise<Order[]> {
+    return fetchAllWithCursor(
+      (cursor, pageSize) => this.getPayouts(pageSize, cursor),
+      100
+    )
   },
 
   /**
@@ -363,17 +478,10 @@ export const supabaseOrderService = {
   },
 
   /**
-   * Get payout summary statistics.
-   * Only counts orders where commission is active (not 'none').
+   * Get payout summary statistics via indexed SQL aggregation (no full-table scan in app).
    */
   async getPayoutSummary(): Promise<PayoutSummary> {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('seller_earnings, commission_amount, payment_status, commission_status, order_status')
-
-    if (error) throw error
-
-    const summary: PayoutSummary = {
+    const empty: PayoutSummary = {
       pendingAmount: 0,
       totalSellerEarnings: 0,
       totalCommission: 0,
@@ -385,34 +493,70 @@ export const supabaseOrderService = {
       rejectedCommission: 0,
     }
 
-    for (const row of data || []) {
-      const earnings = Number(row.seller_earnings) || 0
-      const commission = Number(row.commission_amount) || 0
-      const commStatus: CommissionStatus = (row.commission_status as CommissionStatus) || 'none'
-
-      // Only include in totals if commission is active
-      if (commStatus !== 'none') {
-        summary.totalSellerEarnings += earnings
-        summary.totalCommission += commission
-
-        if (commStatus === 'pending') {
-          summary.pendingCommission += commission
-          summary.pendingAmount += earnings
-        } else if (commStatus === 'earned') {
-          summary.earnedCommission += commission
-        } else if (commStatus === 'paid') {
-          summary.earnedCommission += commission
-          summary.paidAmount += earnings
-        } else if (commStatus === 'cancelled') {
-          summary.cancelledCommission += commission
-        } else if (commStatus === 'rejected') {
-          summary.rejectedCommission += commission
-        }
-
-        if (row.payment_status === 'processing') {
-          summary.processingAmount += earnings
+    try {
+      const { data, error } = await supabase.rpc('get_payout_summary')
+      if (!error && data) {
+        const row = Array.isArray(data) ? data[0] : data
+        if (row) {
+          return {
+            pendingAmount: Number(row.pending_amount || 0),
+            totalSellerEarnings: Number(row.total_seller_earnings || 0),
+            totalCommission: Number(row.total_commission || 0),
+            paidAmount: Number(row.paid_amount || 0),
+            processingAmount: Number(row.processing_amount || 0),
+            pendingCommission: Number(row.pending_commission || 0),
+            earnedCommission: Number(row.earned_commission || 0),
+            cancelledCommission: Number(row.cancelled_commission || 0),
+            rejectedCommission: Number(row.rejected_commission || 0),
+          }
         }
       }
+    } catch {
+      // Fall through to client-side aggregation below
+    }
+
+    // Fallback: cursor-paginated aggregation (no OFFSET)
+    const summary = { ...empty }
+    let cursor: PaginationCursor | null = null
+    const pageSize = 200
+
+    for (;;) {
+      const page = await this.getPayouts(pageSize, cursor)
+      if (page.length === 0) break
+
+      for (const order of page) {
+        const earnings = order.sellerEarnings
+        const commission = order.commissionAmount
+        const commStatus = order.commissionStatus
+
+        if (commStatus !== 'none') {
+          summary.totalSellerEarnings += earnings
+          summary.totalCommission += commission
+
+          if (commStatus === 'pending') {
+            summary.pendingCommission += commission
+            summary.pendingAmount += earnings
+          } else if (commStatus === 'earned') {
+            summary.earnedCommission += commission
+          } else if (commStatus === 'paid') {
+            summary.earnedCommission += commission
+            summary.paidAmount += earnings
+          } else if (commStatus === 'cancelled') {
+            summary.cancelledCommission += commission
+          } else if (commStatus === 'rejected') {
+            summary.rejectedCommission += commission
+          }
+
+          if (order.paymentStatus === 'processing') {
+            summary.processingAmount += earnings
+          }
+        }
+      }
+
+      if (page.length < pageSize) break
+      const last = page[page.length - 1]
+      if (!last) break
+      cursor = { createdAt: last.createdAt, id: last.id }
     }
 
     return summary
@@ -464,5 +608,51 @@ export const supabaseOrderService = {
     ].join('\n')
 
     return csvContent
+  },
+
+  async archiveOrder(id: string): Promise<void> {
+    await this.updateOrderStatus(id, 'archived')
+  },
+
+  async restoreOrder(id: string): Promise<void> {
+    await this.updateOrderStatus(id, 'lead_created')
+  },
+
+  async deleteOrderPermanent(id: string): Promise<void> {
+    try {
+      await supabase.from('seller_payouts').delete().eq('order_id', id)
+    } catch {}
+    try {
+      await supabase.from('order_timeline').delete().eq('order_id', id)
+    } catch {}
+    const { error } = await supabase.from('orders').delete().eq('id', id)
+    if (error) throw error
+  },
+
+  async bulkArchiveOrders(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('orders')
+      .update({ order_status: 'archived', updated_at: new Date().toISOString() })
+      .in('id', ids)
+    if (error) throw error
+  },
+
+  async bulkRestoreOrders(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('orders')
+      .update({ order_status: 'lead_created', updated_at: new Date().toISOString() })
+      .in('id', ids)
+    if (error) throw error
+  },
+
+  async bulkDeleteOrdersPermanent(ids: string[]): Promise<void> {
+    try {
+      await supabase.from('seller_payouts').delete().in('order_id', ids)
+    } catch {}
+    try {
+      await supabase.from('order_timeline').delete().in('order_id', ids)
+    } catch {}
+    const { error } = await supabase.from('orders').delete().in('id', ids)
+    if (error) throw error
   },
 }
