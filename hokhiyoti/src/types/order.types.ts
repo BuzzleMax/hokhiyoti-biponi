@@ -7,6 +7,7 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled'
   | 'rejected'
+  | 'archived'
   // Legacy statuses kept for backward compatibility with existing DB rows
   | 'pending'
   | 'processing'
@@ -94,5 +95,6 @@ export type OrderStatusCounts = {
   delivered: number
   cancelled: number
   rejected: number
+  archived: number
   total: number
 }

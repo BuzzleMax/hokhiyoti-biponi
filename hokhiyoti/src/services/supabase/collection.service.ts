@@ -32,22 +32,32 @@ function collectionToRow(collection: Partial<Collection>): Partial<CollectionRow
   }
 }
 
+let cachedCollections: Collection[] | null = null
+
 export const supabaseCollectionService = {
-  async listCollections(): Promise<Collection[]> {
+  async listCollections(bypassCache = false): Promise<Collection[]> {
+    if (cachedCollections && !bypassCache) {
+      return cachedCollections
+    }
     const { data, error } = await supabase
       .from('collections')
-      .select('*')
+      .select('id, name, slug, description, featured, image_url, created_at')
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
 
     if (error) throw error
-    return (data || []).map(rowToCollection)
+    const result = (data || []).map(rowToCollection)
+    cachedCollections = result
+    return result
   },
 
-  async getFeaturedCollections(): Promise<Collection[]> {
+  async getFeaturedCollections(bypassCache = false): Promise<Collection[]> {
+    if (cachedCollections && !bypassCache) {
+      return cachedCollections.filter(c => c.featured)
+    }
     const { data, error } = await supabase
       .from('collections')
-      .select('*')
+      .select('id, name, slug, description, featured, image_url, created_at')
       .eq('featured', true)
       .order('sort_order', { ascending: true })
 
@@ -56,9 +66,13 @@ export const supabaseCollectionService = {
   },
 
   async getCollectionBySlug(slug: string): Promise<Collection> {
+    if (cachedCollections) {
+      const cached = cachedCollections.find(c => c.slug === slug)
+      if (cached) return cached
+    }
     const { data, error } = await supabase
       .from('collections')
-      .select('*')
+      .select('id, name, slug, description, featured, image_url, created_at')
       .eq('slug', slug)
       .single()
 
@@ -68,11 +82,12 @@ export const supabaseCollectionService = {
   },
 
   async createCollection(collection: Partial<Collection>): Promise<Collection> {
+    cachedCollections = null
     const row = collectionToRow(collection)
     const { data, error } = await supabase
       .from('collections')
       .insert(row)
-      .select()
+      .select('id, name, slug, description, featured, image_url, created_at')
       .single()
 
     if (error) throw error
@@ -81,12 +96,13 @@ export const supabaseCollectionService = {
   },
 
   async updateCollection(id: string, collection: Partial<Collection>): Promise<Collection> {
+    cachedCollections = null
     const row = collectionToRow(collection)
     const { data, error } = await supabase
       .from('collections')
       .update(row)
       .eq('id', id)
-      .select()
+      .select('id, name, slug, description, featured, image_url, created_at')
       .single()
 
     if (error) throw error
@@ -95,6 +111,7 @@ export const supabaseCollectionService = {
   },
 
   async deleteCollection(id: string): Promise<void> {
+    cachedCollections = null
     const { error } = await supabase
       .from('collections')
       .delete()

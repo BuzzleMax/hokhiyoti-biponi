@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'wouter'
 import type { Product } from '../../types/product.types'
 import { formatPriceINR, getWhatsAppProductUrl, calculateCommission } from '../../lib/utils'
 import { supabaseOrderService } from '../../services/supabase/order.service'
 
-export default function ProductCard({ product }: { product: Product }) {
+const ProductCard = memo(function ProductCard({ product }: { product: Product }) {
   const img = product.images?.[0]
   const hoverImg = product.images?.[1] || img
   const targetPath = `/product/${product.slug || product.id}`
@@ -127,4 +128,6 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
     </motion.div>
   )
-}
+})
+
+export default ProductCard

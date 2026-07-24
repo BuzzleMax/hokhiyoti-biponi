@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ZoomIn, ChevronLeft, ChevronRight, X, Play, Video as VideoIcon } from 'lucide-react'
 import type { ProductImage, ProductVideo } from '../../types/product.types'
 
@@ -22,6 +22,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
   const [isZooming, setIsZooming] = useState(false)
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
   const mainImgRef = useRef<HTMLDivElement>(null)
 
   const fallbackImg: MediaItem = {
@@ -30,10 +31,8 @@ export default function ProductGallery({ images = [], videos = [], productName }
     alt: productName,
   }
 
-  // Combine images and videos into single gallery array
   const mediaList: MediaItem[] = []
 
-  // Add cover images first if marked, or sorted images
   images.forEach((img, idx) => {
     mediaList.push({
       id: img.id || `img_${idx}`,
@@ -55,9 +54,24 @@ export default function ProductGallery({ images = [], videos = [], productName }
     })
   })
 
-  // If no media, use fallback
   const galleryItems = mediaList.length > 0 ? mediaList : [fallbackImg]
   const activeMedia = galleryItems[activeIdx] ?? galleryItems[0] ?? fallbackImg
+
+  // Reset play state when changing active media
+  useEffect(() => {
+    setIsPlaying(false)
+  }, [activeIdx])
+
+  // Preload only the next image in the background
+  useEffect(() => {
+    if (galleryItems.length <= 1) return
+    const nextIdx = (activeIdx + 1) % galleryItems.length
+    const nextItem = galleryItems[nextIdx]
+    if (nextItem && nextItem.type === 'image') {
+      const img = new Image()
+      img.src = nextItem.url
+    }
+  }, [activeIdx, galleryItems])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (activeMedia.type !== 'image' || !mainImgRef.current) return
@@ -93,7 +107,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
               className={`w-full h-full object-cover transition-opacity duration-300 ${
                 isZooming ? 'opacity-0 md:opacity-0' : 'opacity-100'
               }`}
-              loading="eager"
+              loading={activeIdx === 0 ? 'eager' : 'lazy'}
               onClick={() => setIsModalOpen(true)}
             />
 
@@ -119,18 +133,43 @@ export default function ProductGallery({ images = [], videos = [], productName }
             </button>
           </>
         ) : (
-          /* Video Player Container */
+          /* Video Player Container with lazy loading thumbnail */
           <div className="relative w-full h-full bg-black flex items-center justify-center">
-            <video
-              src={activeMedia.url}
-              controls
-              playsInline
-              className="w-full h-full object-contain"
-              poster={activeMedia.thumbnailUrl}
-            />
+            {isPlaying ? (
+              <video
+                src={activeMedia.url}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div
+                onClick={() => setIsPlaying(true)}
+                className="absolute inset-0 flex items-center justify-center cursor-pointer select-none"
+              >
+                {activeMedia.thumbnailUrl ? (
+                  <img
+                    src={activeMedia.thumbnailUrl}
+                    alt={activeMedia.alt || productName}
+                    className="w-full h-full object-cover opacity-70"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/70">
+                    <VideoIcon className="w-8 h-8" />
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/45 transition-colors">
+                  <div className="bg-white/90 backdrop-blur-md p-4 rounded-full shadow-lg text-[#111111] hover:scale-105 transition-transform duration-300">
+                    <Play className="w-6 h-6 fill-[#111111] text-[#111111]" />
+                  </div>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
               title="Fullscreen Video"
             >
               <ZoomIn className="w-4 h-4" />
@@ -140,7 +179,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
 
         {/* Gallery Counter Badge */}
         {galleryItems.length > 1 && (
-          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[11px] font-sans font-medium px-3 py-1 rounded-full tracking-wider uppercase">
+          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[11px] font-sans font-medium px-3 py-1 rounded-full tracking-wider uppercase z-10">
             {activeIdx + 1} / {galleryItems.length}
           </div>
         )}
@@ -153,7 +192,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
                 e.stopPropagation()
                 handlePrev()
               }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-md p-2 rounded-full text-[#111111] shadow-sm transition-all"
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-md p-2 rounded-full text-[#111111] shadow-sm transition-all z-10"
               aria-label="Previous media"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -163,7 +202,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
                 e.stopPropagation()
                 handleNext()
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-md p-2 rounded-full text-[#111111] shadow-sm transition-all"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-md p-2 rounded-full text-[#111111] shadow-sm transition-all z-10"
               aria-label="Next media"
             >
               <ChevronRight className="w-5 h-5" />
@@ -173,7 +212,7 @@ export default function ProductGallery({ images = [], videos = [], productName }
 
         {/* Mobile Pagination Indicator Dots */}
         {galleryItems.length > 1 && (
-          <div className="md:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+          <div className="md:hidden absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none z-10">
             {galleryItems.map((_, idx) => (
               <span
                 key={idx}
@@ -204,11 +243,12 @@ export default function ProductGallery({ images = [], videos = [], productName }
                   src={item.url}
                   alt={item.alt || `${productName} ${idx + 1}`}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               ) : (
                 <div className="relative w-full h-full bg-black flex items-center justify-center">
                   {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-70" />
+                    <img src={item.thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-70" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/70">
                       <VideoIcon className="w-6 h-6" />
@@ -255,7 +295,6 @@ export default function ProductGallery({ images = [], videos = [], productName }
                 autoPlay
                 playsInline
                 className="max-h-[85vh] w-full rounded-lg shadow-2xl"
-                poster={activeMedia.thumbnailUrl}
               />
             )}
 

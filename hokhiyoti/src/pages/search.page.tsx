@@ -1,13 +1,19 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import type { Product } from '../types/product.types'
+import type { Category } from '../types/category.types'
+import type { Collection } from '../types/collection.types'
 import { supabaseProductService } from '../services/supabase/product.service'
+import { supabaseCategoryService } from '../services/supabase/category.service'
+import { supabaseCollectionService } from '../services/supabase/collection.service'
 import ProductCard from '../components/home/ProductCard'
 import { Search, Filter, X, SlidersHorizontal } from 'lucide-react'
 import { useSEO } from '../hooks/useSEO'
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
-  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filters
@@ -19,88 +25,107 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_low' | 'price_high'>('newest')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
+  // Pagination states
+  const [hasMore, setHasMore] = useState(true)
+  const [cursors, setCursors] = useState<Array<{ createdAt: string; id: string; price?: number } | null>>([null])
+
+  const limit = 9
+
   useSEO({
     title: 'Search & Explore Curations | Hokhiyoti Biponi',
     description: 'Find exquisite handwoven Mekhela Chador, Silk Sarees, and Heritage Handloom collections.',
   })
 
+  // Load categories and collections on mount for dropdowns
   useEffect(() => {
-    supabaseProductService
-      .getProducts()
-      .then((res) => {
-        setAllProducts(res)
-        setLoading(false)
+    Promise.all([
+      supabaseCategoryService.listCategories(),
+      supabaseCollectionService.listCollections()
+    ])
+      .then(([cats, cols]) => {
+        setCategories(cats)
+        setCollections(cols)
       })
-      .catch(() => setLoading(false))
+      .catch((err) => console.warn('Failed to load filter metadata:', err))
   }, [])
 
-  // Extract dynamic categories, collections, fabrics, and colours for filter dropdowns
-  const categories = useMemo(() => {
-    const set = new Set<string>()
-    allProducts.forEach((p) => p.category?.name && set.add(p.category.name))
-    return Array.from(set)
-  }, [allProducts])
+  const loadMore = async (isInitial = false) => {
+    setLoading(true)
+    const activeCursor = isInitial ? null : cursors[cursors.length - 1]
+    try {
+      // Build search options
+      const options: any = {
+        limit,
+        categorySlug: selectedCategory !== 'all' ? selectedCategory : undefined,
+        collectionSlug: selectedCollection !== 'all' ? selectedCollection : undefined,
+        cursor: activeCursor
+      }
 
-  const collections = useMemo(() => {
-    const set = new Set<string>()
-    allProducts.forEach((p) => p.collection?.name && set.add(p.collection.name))
-    return Array.from(set)
-  }, [allProducts])
+      // Query products progressively
+      let res = await supabaseProductService.getProducts(options)
 
-  const fabrics = useMemo(() => {
-    const set = new Set<string>()
-    allProducts.forEach((p) => p.fabric && set.add(p.fabric))
-    return Array.from(set)
-  }, [allProducts])
-
-  const colours = useMemo(() => {
-    const set = new Set<string>()
-    allProducts.forEach((p) => p.colours.forEach((c) => set.add(c.name)))
-    return Array.from(set)
-  }, [allProducts])
-
-  // Multi-facet filtering logic
-  const filteredProducts = useMemo(() => {
-    const q = query.trim().toLowerCase()
-
-    return allProducts
-      .filter((p) => {
-        // Search query
+      // Apply client-side multi-facet filters for search queries, fabrics, colours, availability, and sort
+      const q = query.trim().toLowerCase()
+      let filtered = res.filter((p) => {
         if (q.length > 0) {
           const matchName = p.name.toLowerCase().includes(q)
           const matchDesc = p.description.toLowerCase().includes(q)
-          const matchCat = p.category?.name.toLowerCase().includes(q)
-          const matchCol = p.collection?.name.toLowerCase().includes(q)
-          const matchFabric = p.fabric?.toLowerCase().includes(q)
-          const matchColour = p.colours.some((c) => c.name.toLowerCase().includes(q))
-          if (!matchName && !matchDesc && !matchCat && !matchCol && !matchFabric && !matchColour) return false
+          if (!matchName && !matchDesc) return false
         }
-
-        // Category filter
-        if (selectedCategory !== 'all' && p.category?.name !== selectedCategory) return false
-
-        // Collection filter
-        if (selectedCollection !== 'all' && p.collection?.name !== selectedCollection) return false
-
-        // Fabric filter
         if (selectedFabric !== 'all' && p.fabric !== selectedFabric) return false
-
-        // Colour filter
         if (selectedColour !== 'all' && !p.colours.some((c) => c.name === selectedColour)) return false
-
-        // Availability filter
         if (selectedAvailability === 'in_stock' && p.availabilityStatus === 'out_of_stock') return false
         if (selectedAvailability === 'out_of_stock' && p.availabilityStatus !== 'out_of_stock') return false
-
         return true
       })
-      .sort((a, b) => {
+
+      // Sort
+      filtered = filtered.sort((a, b) => {
         if (sortBy === 'price_low') return a.price - b.price
         if (sortBy === 'price_high') return b.price - a.price
         if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [allProducts, query, selectedCategory, selectedCollection, selectedFabric, selectedColour, selectedAvailability, sortBy])
+
+      if (res.length > 0) {
+        setProducts((prev) => {
+          const prevIds = new Set(prev.map((p) => p.id))
+          const fresh = filtered.filter((p) => !prevIds.has(p.id))
+          return isInitial ? fresh : [...prev, ...fresh]
+        })
+        const lastItem = res[res.length - 1]
+        const nextCursor = lastItem ? { createdAt: lastItem.createdAt, id: lastItem.id, price: lastItem.price } : null
+        setCursors((prev) => [...prev, nextCursor])
+        if (res.length < limit) {
+          setHasMore(false)
+        }
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Search failed:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleShowLess = () => {
+    if (products.length <= limit) return
+    setProducts((prev) => prev.slice(0, prev.length - limit))
+    setCursors((prev) => prev.slice(0, prev.length - 1))
+    setHasMore(true)
+  }
+
+  // Trigger load when filters or query updates
+  useEffect(() => {
+    setProducts([])
+    setCursors([null])
+    setHasMore(true)
+    loadMore(true)
+  }, [query, selectedCategory, selectedCollection, selectedFabric, selectedColour, selectedAvailability, sortBy])
+
+  const fabrics = ['Muga Silk', 'Pat Silk', 'Eri Silk', 'Cotton Handloom', 'Tussar Silk']
+  const colours = ['Golden', 'Off-White', 'Red', 'Blue', 'Green', 'Black', 'Pink', 'Purple', 'Silver', 'Beige']
 
   const clearFilters = () => {
     setQuery('')
@@ -158,11 +183,11 @@ export default function SearchPage() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57]"
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57] cursor-pointer"
           >
             <option value="all">Category: All</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat.id} value={cat.slug}>{cat.name}</option>
             ))}
           </select>
 
@@ -170,47 +195,43 @@ export default function SearchPage() {
           <select
             value={selectedCollection}
             onChange={(e) => setSelectedCollection(e.target.value)}
-            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57]"
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57] cursor-pointer"
           >
             <option value="all">Collection: All</option>
             {collections.map((col) => (
-              <option key={col} value={col}>{col}</option>
+              <option key={col.id} value={col.slug}>{col.name}</option>
             ))}
           </select>
 
           {/* Fabric Filter */}
-          {fabrics.length > 0 && (
-            <select
-              value={selectedFabric}
-              onChange={(e) => setSelectedFabric(e.target.value)}
-              className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57]"
-            >
-              <option value="all">Fabric: All</option>
-              {fabrics.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedFabric}
+            onChange={(e) => setSelectedFabric(e.target.value)}
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57] cursor-pointer"
+          >
+            <option value="all">Fabric: All</option>
+            {fabrics.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
 
           {/* Colour Filter */}
-          {colours.length > 0 && (
-            <select
-              value={selectedColour}
-              onChange={(e) => setSelectedColour(e.target.value)}
-              className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57]"
-            >
-              <option value="all">Colour: All</option>
-              {colours.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedColour}
+            onChange={(e) => setSelectedColour(e.target.value)}
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57] cursor-pointer"
+          >
+            <option value="all">Colour: All</option>
+            {colours.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
 
           {/* Availability */}
           <select
             value={selectedAvailability}
             onChange={(e) => setSelectedAvailability(e.target.value)}
-            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57]"
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-[#FAF9F6] focus:outline-none focus:border-[#B08D57] cursor-pointer"
           >
             <option value="all">Availability: All</option>
             <option value="in_stock">In Stock Only</option>
@@ -223,7 +244,7 @@ export default function SearchPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-white focus:outline-none focus:border-[#B08D57] font-semibold"
+            className="h-9 px-3.5 rounded-full border border-black/10 text-xs bg-white focus:outline-none focus:border-[#B08D57] font-semibold cursor-pointer"
           >
             <option value="newest">Sort: Newest First</option>
             <option value="oldest">Sort: Oldest First</option>
@@ -233,7 +254,7 @@ export default function SearchPage() {
 
           <button
             onClick={clearFilters}
-            className="h-9 px-4 rounded-full text-xs font-medium text-gray-500 hover:text-black border border-transparent hover:border-gray-300"
+            className="h-9 px-4 rounded-full text-xs font-medium text-gray-500 hover:text-black border border-transparent hover:border-gray-300 cursor-pointer"
           >
             Reset
           </button>
@@ -244,11 +265,11 @@ export default function SearchPage() {
       <div className="lg:hidden flex items-center justify-between">
         <button
           onClick={() => setShowMobileFilters(true)}
-          className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white border border-black/10 text-xs font-semibold"
+          className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-white border border-black/10 text-xs font-semibold cursor-pointer"
         >
           <Filter className="w-3.5 h-3.5 text-[#B08D57]" /> Filter & Sort
         </button>
-        <span className="text-xs text-gray-500 font-light">{filteredProducts.length} Results</span>
+        <span className="text-xs text-gray-500 font-light">{products.length} Results</span>
       </div>
 
       {/* Mobile Filter Drawer */}
@@ -272,7 +293,7 @@ export default function SearchPage() {
                 >
                   <option value="all">All Categories</option>
                   {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c.id} value={c.slug}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -286,7 +307,7 @@ export default function SearchPage() {
                 >
                   <option value="all">All Collections</option>
                   {collections.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c.id} value={c.slug}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -325,27 +346,59 @@ export default function SearchPage() {
       )}
 
       {/* Grid Results */}
-      {loading ? (
-        <div className="py-16 text-center text-xs tracking-widest text-gray-400 animate-pulse">
-          LOADING CURATIONS...
-        </div>
-      ) : filteredProducts.length > 0 ? (
+      {products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProducts.map((p) => (
+          {products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       ) : (
-        <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 space-y-3">
-          <p className="font-sans text-sm font-medium text-[#111111]">No curations match your current search or filters.</p>
-          <button
-            onClick={clearFilters}
-            className="px-6 py-2.5 rounded-full bg-[#111111] text-white text-xs font-semibold tracking-wider uppercase"
-          >
-            Clear All Filters
-          </button>
+        !loading && (
+          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 space-y-3">
+            <p className="font-sans text-sm font-medium text-[#111111]">No curations match your current search or filters.</p>
+            <button
+              onClick={clearFilters}
+              className="px-6 py-2.5 rounded-full bg-[#111111] text-white text-xs font-semibold tracking-wider uppercase"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )
+      )}
+
+      {/* Loading Spinner */}
+      {loading && (
+        <div className="py-8 flex justify-center items-center">
+          <div className="w-6 h-6 border border-[#B08D57]/20 border-t-[#B08D57] rounded-full animate-spin" />
         </div>
       )}
+
+      {/* Show More / Show Less Controls */}
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+        {hasMore && !loading && (
+          <button
+            onClick={() => loadMore(false)}
+            className="h-11 px-8 rounded-full bg-[#111111] hover:bg-[#B08D57] text-[#FAF9F6] font-sans text-xs font-semibold tracking-widest uppercase transition-colors cursor-pointer"
+          >
+            Show More
+          </button>
+        )}
+        
+        {products.length > limit && (
+          <button
+            onClick={handleShowLess}
+            className="h-11 px-8 rounded-full border border-[#111111] hover:bg-[#111111] hover:text-[#FAF9F6] text-[#111111] font-sans text-xs font-semibold tracking-widest uppercase transition-colors cursor-pointer"
+          >
+            Show Less
+          </button>
+        )}
+
+        {!hasMore && products.length > 0 && (
+          <span className="font-sans text-xs text-[#B08D57] tracking-widest font-medium">
+            ✨ You've reached the end of our collection.
+          </span>
+        )}
+      </div>
     </div>
   )
 }

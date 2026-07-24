@@ -28,25 +28,37 @@ function categoryToRow(category: Partial<Category>): Partial<CategoryRow> {
   }
 }
 
+let cachedCategories: Category[] | null = null
+
 export const supabaseCategoryService = {
-  async listCategories(): Promise<Category[]> {
+  async listCategories(bypassCache = false): Promise<Category[]> {
+    if (cachedCategories && !bypassCache) {
+      return cachedCategories
+    }
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug, description, created_at, image_url')
       .order('name', { ascending: true })
 
     if (error) throw error
-    return (data || []).map(rowToCategory)
+    const result = (data || []).map(rowToCategory)
+    cachedCategories = result
+    return result
   },
 
-  async getCategories(): Promise<Category[]> {
-    return this.listCategories()
+  async getCategories(bypassCache = false): Promise<Category[]> {
+    return this.listCategories(bypassCache)
   },
 
   async getCategoryBySlug(slug: string): Promise<Category> {
+    // Check cache first
+    if (cachedCategories) {
+      const cached = cachedCategories.find(c => c.slug === slug)
+      if (cached) return cached
+    }
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug, description, created_at, image_url')
       .eq('slug', slug)
       .single()
 
@@ -56,11 +68,12 @@ export const supabaseCategoryService = {
   },
 
   async createCategory(category: Partial<Category>): Promise<Category> {
+    cachedCategories = null
     const row = categoryToRow(category)
     const { data, error } = await supabase
       .from('categories')
       .insert(row)
-      .select()
+      .select('id, name, slug, description, created_at, image_url')
       .single()
 
     if (error) throw error
@@ -69,12 +82,13 @@ export const supabaseCategoryService = {
   },
 
   async updateCategory(id: string, category: Partial<Category>): Promise<Category> {
+    cachedCategories = null
     const row = categoryToRow(category)
     const { data, error } = await supabase
       .from('categories')
       .update(row)
       .eq('id', id)
-      .select()
+      .select('id, name, slug, description, created_at, image_url')
       .single()
 
     if (error) throw error
@@ -83,6 +97,7 @@ export const supabaseCategoryService = {
   },
 
   async deleteCategory(id: string): Promise<void> {
+    cachedCategories = null
     const { error } = await supabase
       .from('categories')
       .delete()
