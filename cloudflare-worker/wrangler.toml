@@ -5,3 +5,5 @@ compatibility_date = "2024-01-01"
 [vars]
 # BREVO_LIST_ID will be set here or as a secret
 # BREVO_API_KEY must be set as a secret: wrangler secret put BREVO_API_KEY
+SUPABASE_URL = "https://oacgnyjaqpfxiwopsuiq.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hY2dueWphcXBmeGl3b3BzdWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MjIwMjYsImV4cCI6MjEwMDE5ODAyNn0.u1eywsieg9SB6oOXw892lHdn-Lx_1GDnXDlfseIoXfM"

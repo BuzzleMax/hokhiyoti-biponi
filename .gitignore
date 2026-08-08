@@ -9,3 +9,7 @@ coverage
 npm-debug.log*
 pnpm-debug.log*
 yarn-error.log*
+
+# Cloudflare Worker generated files (may contain credentials)
+cloudflare-worker/worker-configuration.d.ts
+cloudflare-worker/models.json

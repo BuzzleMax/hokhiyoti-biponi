@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { lazy, Suspense } from 'react'
 import { AnimatePresence } from 'framer-motion'
 
 import AnnouncementBar from './AnnouncementBar'
@@ -7,6 +8,8 @@ import Footer from './Footer'
 import Header from './Header'
 import Newsletter from './Newsletter'
 import MobileMenu from './MobileMenu'
+
+const HokhiyotiAIStylist = lazy(() => import('../ui/HokhiyotiAIStylist'))
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -30,6 +33,10 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       </main>
 
       <BackToTop />
+      <Suspense fallback={null}>
+        <HokhiyotiAIStylist />
+      </Suspense>
     </div>
   )
 }
+
