@@ -121,6 +121,24 @@ export default function HokhiyotiAIStylist() {
 
   // Drag-Resize state for desktop
   const [dimensions, setDimensions] = useState({ width: 420, height: 600 })
+  
+  // Responsive initial dimensions based on screen size
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      if (window.innerWidth < 768) {
+        setDimensions({ width: window.innerWidth - 32, height: window.innerHeight - 100 })
+      } else {
+        setDimensions({ width: 420, height: 600 })
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   const [isResizing, setIsResizing] = useState(false)
   const resizeRef = useRef<{ startX: number; startY: number; startWidth: number; startHeight: number } | null>(null)
 
@@ -465,7 +483,7 @@ export default function HokhiyotiAIStylist() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end font-sans">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex flex-col items-end font-sans pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]">
       {/* Trigger Button overlaying all content */}
       <AnimatePresence>
         {!isOpen && (
@@ -474,25 +492,25 @@ export default function HokhiyotiAIStylist() {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            whileHover={{ scale: 1.06 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
               setIsOpen(true)
               setIsMinimized(false)
             }}
-            className="relative flex items-center gap-3 px-6 py-4 rounded-full bg-[#0a0a0a] text-white border border-[#B08D57]/40 shadow-[0_12px_40px_rgba(176,141,87,0.25)] cursor-pointer group z-[99999]"
+            className="relative flex items-center gap-2 sm:gap-2 px-3.5 py-1.5 sm:px-6 sm:py-4 rounded-full bg-[#0a0a0a] text-white border border-[#B08D57]/40 shadow-md sm:shadow-[0_12px_40px_rgba(176,141,87,0.25)] cursor-pointer group z-[99999] w-[200px] sm:w-auto max-w-[200px] sm:max-w-none h-[52px] sm:h-auto"
           >
             <span className="absolute inset-0 rounded-full border border-[#B08D57] opacity-60 animate-ping pointer-events-none scale-105" />
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#B08D57] to-[#DFD3C3] text-black">
-              <Sparkles className="w-4 h-4 animate-pulse" />
+            <div className="relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#B08D57] to-[#DFD3C3] text-black flex-shrink-0">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
             </div>
-            <div className="flex flex-col items-start text-left">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#B08D57]/80 font-medium">Assistant</span>
-              <span className="text-sm font-semibold tracking-wide font-sans text-white group-hover:text-[#DFD3C3] transition-colors">
+            <div className="flex flex-col items-start text-left min-w-0">
+              <span className="text-[7px] sm:text-[10px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-[#B08D57]/90 font-semibold leading-none mb-0.5">Assistant</span>
+              <span className="text-[11px] sm:text-sm font-semibold tracking-tight sm:tracking-wide font-sans text-white group-hover:text-[#DFD3C3] transition-colors truncate">
                 {preferredLanguage === 'Assamese' ? 'হখীয়তী এআই ষ্টাইলিষ্ট' : 'Hokhiyoti AI Stylist'}
               </span>
             </div>
-            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-black animate-pulse ml-1" />
+            <span className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full border border-black animate-pulse ml-0.5 flex-shrink-0" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -508,10 +526,8 @@ export default function HokhiyotiAIStylist() {
               opacity: 1,
               scale: 1,
               y: 0,
-              width: isMaximized ? '100vw' : isMinimized ? 320 : dimensions.width,
-              height: isMaximized ? '100vh' : isMinimized ? 60 : dimensions.height,
-              right: isMaximized ? 0 : '',
-              bottom: isMaximized ? 0 : ''
+              width: isMaximized ? '100vw' : isMinimized ? (isMobile ? 'calc(100vw - 2rem)' : 320) : (isMobile ? 'calc(100vw - 2rem)' : dimensions.width),
+              height: isMaximized ? '100vh' : isMinimized ? 60 : (isMobile ? 'min(580px, calc(100dvh - 3rem))' : dimensions.height)
             }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
@@ -519,9 +535,10 @@ export default function HokhiyotiAIStylist() {
               flex flex-col bg-[#FAF9F6] border border-[#B08D57]/30 shadow-editorial z-[99999]
               ${isMaximized ? 'fixed inset-0 rounded-none' : 'rounded-xl'}
               overflow-hidden transition-all duration-400
+              ${isMobile && !isMaximized ? 'fixed left-4 right-4 bottom-4 top-auto max-h-[calc(100dvh-2rem)]' : 'fixed right-6 bottom-6'}
             `}
             style={
-              !isMaximized && !isMinimized
+              !isMaximized && !isMinimized && !isMobile
                 ? { width: dimensions.width, height: dimensions.height }
                 : undefined
             }
