@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Menu, Search, ShoppingBag, MessageCircle } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useLocation } from 'wouter'
 
 import Navbar, { rightItems } from './Navbar'
+import MobileMenu from './MobileMenu'
 import { AppLink } from '../../lib/navigation'
 import logo from '../../assets/logo.png'
 
@@ -49,7 +49,7 @@ export default function Header({
   }
 
   const content = useMemo(() => {
-    return children ? children(menuOpen, setMenuOpen) : null
+    return children ? children(menuOpen, setMenuOpen) : <MobileMenu open={menuOpen} onOpenChange={setMenuOpen} />
   }, [children, menuOpen])
 
   return (
@@ -101,6 +101,7 @@ export default function Header({
               </span>
             </AppLink>
           ))}
+
           {/* Search Icon */}
           <AppLink
             to="/search"
@@ -141,17 +142,6 @@ export default function Header({
       </div>
 
       {content}
-
-      {/* Close on ESC */}
-      <AnimatePresence>
-        {menuOpen ? (
-          <motion.div
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setMenuOpen(false)
-            }}
-          />
-        ) : null}
-      </AnimatePresence>
     </header>
   )
 }

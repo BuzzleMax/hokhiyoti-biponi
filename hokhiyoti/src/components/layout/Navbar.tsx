@@ -18,7 +18,7 @@ const leftItems: NavItem[] = [
 ]
 
 const rightItems: NavItem[] = [
-  { to: '#contact', label: 'Contact' },
+  { to: '/contact', label: 'Contact' },
   { to: '#newsletter', label: 'Newsletter' },
 ]
 

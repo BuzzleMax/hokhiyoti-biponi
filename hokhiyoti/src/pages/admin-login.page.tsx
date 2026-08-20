@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation } from 'wouter'
 import { signInWithEmail } from '../lib/auth'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
@@ -8,6 +9,13 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [, setLocation] = useLocation()
+  const { user } = useAuth()
+
+  // Redirect if already logged in
+  if (user) {
+    setLocation('/admin')
+    return null
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

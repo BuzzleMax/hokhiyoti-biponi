@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, ShoppingBag, MessageCircle, Camera } from 'lucide-react'
 import { AppLink } from '../../lib/navigation'
 import logo from '../../assets/logo.png'
@@ -15,7 +16,7 @@ const leftItems: Array<{ to: string; label: string }> = [
 ]
 
 const rightItems: Array<{ to: string; label: string }> = [
-  { to: '#contact', label: 'Contact' },
+  { to: '/contact', label: 'Contact' },
   { to: '#newsletter', label: 'Newsletter' },
   { to: '/search', label: 'Search' },
 ]
@@ -27,31 +28,43 @@ export default function MobileMenu({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  if (!open) return null
-
   const close = () => onOpenChange(false)
 
-  return (
-    <div className="fixed inset-0 z-[100] flex">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={close}
-        className="fixed inset-0 bg-[#111111]/40 backdrop-blur-sm"
-      />
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
 
-      {/* Drawer */}
-      <motion.aside
-        role="dialog"
-        aria-modal="true"
-        initial={{ x: '-100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '-100%' }}
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="relative z-10 flex h-full w-full max-w-[380px] flex-col bg-[#FAF9F6] p-8 shadow-soft border-r border-[rgba(0,0,0,0.06)]"
-      >
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[150] flex">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={close}
+            className="fixed inset-0 bg-[#111111]/60 backdrop-blur-sm"
+          />
+
+          {/* Drawer */}
+          <motion.aside
+            role="dialog"
+            aria-modal="true"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="relative z-10 flex h-full w-full max-w-[380px] flex-col bg-[#FAF9F6] p-8 shadow-soft border-r border-[rgba(0,0,0,0.06)] overflow-hidden"
+          >
         {/* Header inside drawer */}
         <div className="flex items-center justify-between pb-8 border-b border-[rgba(0,0,0,0.06)]">
           <AppLink to="/" onClick={close} className="inline-block">
@@ -72,7 +85,7 @@ export default function MobileMenu({
         </div>
 
         {/* Navigation links with stagger */}
-        <div className="flex-1 py-12 flex flex-col justify-between">
+        <div className="flex-1 py-12 flex flex-col justify-between overflow-y-auto">
           <nav className="flex flex-col gap-6">
             <div className="space-y-4">
               <p className="text-xs font-medium tracking-widest text-[#666666] mb-4">MENU</p>
@@ -163,5 +176,7 @@ export default function MobileMenu({
         </div>
       </motion.aside>
     </div>
+      )}
+    </AnimatePresence>
   )
 }

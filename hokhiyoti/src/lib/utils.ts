@@ -33,34 +33,29 @@ export function buildWhatsAppMessage(options: {
   const { productName, price, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
 
   const lines = [
-    'Hello.',
-    '',
-    'I want to order',
-    '',
-    'Product:',
+    'Hello Hokhiyoti Biponi! I\'m interested in purchasing',
     productName,
     '',
-    'Price:',
-    formatPriceINR(price),
+    'Price: ₹' + price.toLocaleString('en-IN'),
   ]
 
   if (selectedColour) {
-    lines.push('', 'Colour:', selectedColour)
+    lines.push('', 'Colour: ' + selectedColour)
   }
 
   if (enableSizes && selectedSize) {
-    lines.push('', 'Size:', selectedSize)
+    lines.push('Size: ' + selectedSize)
   }
 
   if (productUrl) {
-    lines.push('', 'Product Link:', productUrl)
+    lines.push('', 'Product URL: ' + productUrl)
   }
 
   if (customerNote) {
-    lines.push('', 'Customer Note:', customerNote)
+    lines.push('', 'Note: ' + customerNote)
   }
 
-  lines.push('', 'Thank you!')
+  lines.push('', 'Could you please confirm availability and delivery details?')
 
   return lines.join('\n')
 }

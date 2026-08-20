@@ -7,6 +7,7 @@ import { SiteLayout } from './components/layout'
 import HomePage from './pages/home.page'
 import QueryProvider from './components/layout/QueryProvider'
 import ThemeProvider from './components/layout/ThemeProvider'
+import { AuthProvider } from './contexts/AuthContext'
 
 // Route-based code splitting
 const AdminLoginPage = lazy(() => import('./pages/admin-login.page'))
@@ -32,54 +33,84 @@ function ScrollToTopOnRouteChange() {
   return null
 }
 
+/**
+ * Handle email verification from Supabase auth callback
+ */
+function EmailVerificationHandler() {
+  useEffect(() => {
+    const handleEmailVerification = async () => {
+      const hash = window.location.hash
+      if (hash && (hash.includes('access_token') || hash.includes('type=signup'))) {
+        // Supabase will automatically handle the session from the hash
+        // The AuthContext will detect the session change and refresh accordingly
+        console.log('Email verification detected, processing...')
+        
+        // Clear the hash to prevent re-processing
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
+
+    handleEmailVerification()
+  }, [])
+
+  return null
+}
+
 export default function App() {
   return (
     <QueryProvider>
       <ThemeProvider>
-        <Router hook={useHashLocation}>
-          <SiteLayout>
-            <ScrollToTopOnRouteChange />
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={typeof window !== 'undefined' ? window.location.pathname : 'ssr'}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="w-full"
-              >
-                <Suspense
-                  fallback={
-                    <div className="min-h-[60vh] flex items-center justify-center bg-[#FAF9F6]">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-6 h-6 border border-[#B08D57]/20 border-t-[#B08D57] rounded-full animate-spin" />
-                        <span className="font-sans text-[9px] uppercase tracking-[0.25em] text-[#B08D57]/60">Loading Hokhiyoti</span>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Switch>
-                    <Route path="/" component={HomePage} />
-                    <Route path="/collection" component={CollectionPage} />
-                    <Route path="/category" component={CategoryPage} />
-                    <Route path="/product/:id" component={ProductPage} />
-                    <Route path="/search" component={SearchPage} />
-                    <Route path="/policy" component={PolicyPage} />
-                    <Route path="/privacy" component={PolicyPage} />
-                    <Route path="/terms" component={PolicyPage} />
-                    <Route path="/refund" component={PolicyPage} />
-                    <Route path="/shipping" component={PolicyPage} />
-                    <Route path="/contact" component={PolicyPage} />
-                    <Route path="/about" component={PolicyPage} />
-                    <Route path="/faq" component={PolicyPage} />
-                    <Route path="/admin-login" component={AdminLoginPage} />
-                    <Route path="/admin" component={AdminPage} />
-                  </Switch>
-                </Suspense>
-              </motion.div>
-            </AnimatePresence>
-          </SiteLayout>
-        </Router>
+        <AuthProvider>
+          <Router hook={useHashLocation}>
+            <Switch>
+              <Route path="/admin-login" component={AdminLoginPage} />
+              <Route>
+                <SiteLayout>
+                  <ScrollToTopOnRouteChange />
+                  <EmailVerificationHandler />
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={typeof window !== 'undefined' ? window.location.pathname : 'ssr'}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.2 }}
+                      className="w-full"
+                    >
+                      <Suspense
+                        fallback={
+                          <div className="min-h-[60vh] flex items-center justify-center bg-[#FAF9F6]">
+                            <div className="flex flex-col items-center gap-3">
+                              <div className="w-6 h-6 border border-[#B08D57]/20 border-t-[#B08D57] rounded-full animate-spin" />
+                              <span className="font-sans text-[9px] uppercase tracking-[0.25em] text-[#B08D57]/60">Loading Hokhiyoti</span>
+                            </div>
+                          </div>
+                        }
+                      >
+                        <Switch>
+                          <Route path="/" component={HomePage} />
+                          <Route path="/collection" component={CollectionPage} />
+                          <Route path="/category" component={CategoryPage} />
+                          <Route path="/product/:id" component={ProductPage} />
+                          <Route path="/search" component={SearchPage} />
+                          <Route path="/policy" component={PolicyPage} />
+                          <Route path="/privacy" component={PolicyPage} />
+                          <Route path="/terms" component={PolicyPage} />
+                          <Route path="/refund" component={PolicyPage} />
+                          <Route path="/shipping" component={PolicyPage} />
+                          <Route path="/contact" component={PolicyPage} />
+                          <Route path="/about" component={PolicyPage} />
+                          <Route path="/faq" component={PolicyPage} />
+                          <Route path="/admin" component={AdminPage} />
+                        </Switch>
+                      </Suspense>
+                    </motion.div>
+                  </AnimatePresence>
+                </SiteLayout>
+              </Route>
+            </Switch>
+          </Router>
+        </AuthProvider>
       </ThemeProvider>
     </QueryProvider>
   )
