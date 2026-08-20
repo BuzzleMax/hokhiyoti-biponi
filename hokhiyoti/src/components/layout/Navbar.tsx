@@ -26,14 +26,14 @@ function NavLink({ item, className, active }: { item: NavItem; className?: strin
   return (
     <AppLink
       to={item.to}
-      className={`relative px-4 py-2 text-sm font-sans font-medium tracking-wide transition-all duration-300 group ${
-        active ? 'text-[#B08D57]' : 'text-[#111111] hover:text-[#B08D57]'
+      className={`relative px-5 py-2 text-xs font-sans font-medium tracking-[0.15em] transition-all duration-400 group ${
+        active ? 'text-[#B08D57]' : 'text-[#0a0a0a] hover:text-[#B08D57]'
       } ${className || ''}`}
     >
       <span className="relative inline-block">
         {item.label}
         <span
-          className={`absolute bottom-0 left-0 h-0.5 bg-[#B08D57] transition-all duration-300 ${
+          className={`absolute bottom-0 left-0 h-px bg-[#B08D57] transition-all duration-400 ${
             active ? 'w-full' : 'w-0 group-hover:w-full'
           }`}
         />

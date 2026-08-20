@@ -18,7 +18,7 @@ export default function Header({
   const [, setLocation] = useLocation()
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--site-header-offset', '80px')
+    document.documentElement.style.setProperty('--site-header-offset', '72px')
     document.documentElement.style.setProperty('--site-announcement-height', '0px')
   }, [])
 
@@ -54,11 +54,11 @@ export default function Header({
 
   return (
     <header
-      className={`sticky top-0 z-[55] w-full border-b border-[rgba(0,0,0,0.06)] transition-all duration-300 ${
-        scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'
+      className={`sticky top-0 z-[55] w-full border-b border-[rgba(0,0,0,0.04)] transition-all duration-500 ${
+        scrolled ? 'bg-white/98 backdrop-blur-sm shadow-soft' : 'bg-white'
       }`}
     >
-      <div className="mx-auto flex max-w-[1600px] h-20 items-center justify-between px-4 md:px-8">
+      <div className="mx-auto flex max-w-[1600px] h-[72px] items-center justify-between px-6 md:px-10 lg:px-16">
         {/* Left Side Navigation (Desktop) */}
         <div className="hidden lg:flex items-center w-1/3 justify-start">
           <Navbar />
@@ -68,11 +68,11 @@ export default function Header({
         <div className="lg:hidden flex items-center w-1/3 justify-start">
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-start text-[#111111] hover:text-[#B08D57] transition-colors"
+            className="inline-flex h-12 w-12 items-center justify-start text-[#0a0a0a] hover:text-[#B08D57] transition-colors duration-300"
             aria-label="Open menu"
             onClick={() => setMenuOpen(true)}
           >
-            <Menu className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+            <Menu className="h-5 w-5 stroke-[1.5]" aria-hidden="true" />
           </button>
         </div>
 
@@ -82,22 +82,22 @@ export default function Header({
             <img
               src={logo}
               alt="Hokhiyoti Biponi"
-              className="h-10 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-9 md:h-11 w-auto object-contain transition-transform duration-500 group-hover:scale-105"
             />
           </AppLink>
         </div>
 
         {/* Right Side Navigation (Desktop) */}
-        <div className="hidden lg:flex items-center w-1/3 justify-end gap-1">
+        <div className="hidden lg:flex items-center w-1/3 justify-end gap-2">
           {rightItems.map((item) => (
             <AppLink
               key={item.to}
               to={item.to}
-              className="relative px-4 py-2 text-sm font-sans font-medium tracking-wide text-[#111111] hover:text-[#B08D57] transition-all duration-300 group"
+              className="relative px-5 py-2 text-xs font-sans font-medium tracking-[0.15em] text-[#0a0a0a] hover:text-[#B08D57] transition-all duration-400 group"
             >
               <span className="relative inline-block">
                 {item.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#B08D57] transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute bottom-0 left-0 w-0 h-px bg-[#B08D57] transition-all duration-400 group-hover:w-full"></span>
               </span>
             </AppLink>
           ))}
@@ -105,38 +105,38 @@ export default function Header({
           {/* Search Icon */}
           <AppLink
             to="/search"
-            className="inline-flex h-10 w-10 items-center justify-center text-[#111111] hover:text-[#B08D57] transition-all duration-300 hover:scale-110"
+            className="inline-flex h-11 w-11 items-center justify-center text-[#0a0a0a] hover:text-[#B08D57] transition-all duration-400 hover:scale-105"
             aria-label="Search"
           >
-            <Search className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+            <Search className="h-5 w-5 stroke-[1.5]" aria-hidden="true" />
           </AppLink>
           {/* WhatsApp Icon */}
           <a
             href="https://wa.me/916003426591"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 w-10 items-center justify-center text-[#111111] hover:text-[#25D366] transition-all duration-300 hover:scale-110"
+            className="inline-flex h-11 w-11 items-center justify-center text-[#0a0a0a] hover:text-[#25D366] transition-all duration-400 hover:scale-105"
             aria-label="WhatsApp"
           >
-            <MessageCircle className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+            <MessageCircle className="h-5 w-5 stroke-[1.5]" aria-hidden="true" />
           </a>
         </div>
 
         {/* Right Side Icons (Mobile) */}
-        <div className="lg:hidden flex items-center w-1/3 justify-end gap-2">
+        <div className="lg:hidden flex items-center w-1/3 justify-end gap-3">
           <AppLink
             to="/search"
-            className="inline-flex h-10 w-10 items-center justify-center text-[#111111] hover:text-[#B08D57] transition-colors"
+            className="inline-flex h-11 w-11 items-center justify-center text-[#0a0a0a] hover:text-[#B08D57] transition-colors duration-300"
             aria-label="Search"
           >
-            <Search className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+            <Search className="h-5 w-5 stroke-[1.5]" aria-hidden="true" />
           </AppLink>
           <AppLink
             to="/collection"
-            className="inline-flex h-10 w-10 items-center justify-center text-[#111111] hover:text-[#B08D57] transition-colors relative"
+            className="inline-flex h-11 w-11 items-center justify-center text-[#0a0a0a] hover:text-[#B08D57] transition-colors duration-300 relative"
             aria-label="Shop"
           >
-            <ShoppingBag className="h-5 w-5 stroke-[1.2]" aria-hidden="true" />
+            <ShoppingBag className="h-5 w-5 stroke-[1.5]" aria-hidden="true" />
           </AppLink>
         </div>
       </div>

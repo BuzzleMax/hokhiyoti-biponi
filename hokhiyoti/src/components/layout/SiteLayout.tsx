@@ -11,7 +11,7 @@ const HokhiyotiAIStylist = lazy(() => import('../ui/HokhiyotiAIStylist'))
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-[100svh] bg-[#FAF9F6] text-[#111111] flex flex-col font-sans">
+    <div className="min-h-[100svh] bg-[#FAF9F6] text-[#0a0a0a] flex flex-col font-sans">
       <AnnouncementBar />
 
       <Header />

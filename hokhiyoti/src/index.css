@@ -1,33 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #111111;
+  /* Premium Color Palette - Enhanced Hokhiyoti Biponi Identity */
+  --color-primary: #0a0a0a;
   --color-background: #FAF9F6;
   --color-surface: #FFFFFF;
   --color-accent: #B08D57;
-  --color-secondary: #666666;
-  --color-border: rgba(0,0,0,0.06);
+  --color-accent-light: #C9A66B;
+  --color-accent-dark: #8B6F42;
+  --color-secondary: #4a4a4a;
+  --color-muted: #8a8a8a;
+  --color-border: rgba(0,0,0,0.04);
+  --color-border-subtle: rgba(0,0,0,0.02);
+  
+  /* Assamese Red Accent - Controlled use */
+  --color-assamese-red: #8B3A3A;
+  --color-assamese-red-muted: #A64D4D;
 
+  /* Typography */
   --font-heading: "Playfair Display", serif;
   --font-sans: "Inter", sans-serif;
 
-  --shadow-soft: 0 18px 60px rgba(0, 0, 0, 0.06);
-  --radius-2xl: 16px;
+  /* Premium Shadows */
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.04);
+  --shadow-editorial: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.06);
+
+  /* Refined Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 }
 
 @layer base {
   body {
     background-color: #FAF9F6;
-    color: #111111;
+    color: #0a0a0a;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    line-height: 1.6;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Playfair Display', serif;
-    color: #111111;
+    color: #0a0a0a;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-weight: 500;
+  }
+
+  h2 {
+    font-weight: 500;
+  }
+
+  h3 {
+    font-weight: 500;
   }
 
   * {
@@ -37,5 +71,155 @@
   html, body {
     max-width: 100vw;
     overflow-x: hidden;
+  }
+
+  /* Premium Link Styles */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Premium Button Reset */
+  button {
+    font-family: inherit;
+  }
+
+  /* Image Optimization */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Hide scrollbar for horizontal scrolling containers */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Subtle custom scrollbar for vertical scrolling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(176, 141, 87, 0.3);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(176, 141, 87, 0.5);
+  }
+}
+
+@layer utilities {
+  /* Premium Typography Utilities */
+  .text-editorial {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .text-elegant {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+  }
+
+  .text-premium {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Subtle Fade Animations */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Premium Underline Animation */
+  .hover-underline {
+    position: relative;
+  }
+
+  .hover-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: currentColor;
+    transition: width 0.3s ease;
+  }
+
+  .hover-underline:hover::after {
+    width: 100%;
+  }
+
+  /* Editorial Image Hover */
+  .editorial-image {
+    transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .editorial-image:hover {
+    transform: scale(1.03);
+  }
+
+  /* Premium Card Styles */
+  .card-editorial {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .card-editorial:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* Gold Accent Text */
+  .text-gold {
+    color: #B08D57;
+  }
+
+  .text-gold-dark {
+    color: #8B6F42;
+  }
+
+  /* Premium Section Spacing */
+  .section-premium {
+    padding: 6rem 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .section-premium {
+      padding: 8rem 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-premium {
+      padding: 10rem 2rem;
+    }
   }
 }

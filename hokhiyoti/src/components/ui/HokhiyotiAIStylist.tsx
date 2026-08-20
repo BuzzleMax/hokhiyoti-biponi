@@ -480,7 +480,7 @@ export default function HokhiyotiAIStylist() {
               setIsOpen(true)
               setIsMinimized(false)
             }}
-            className="relative flex items-center gap-3 px-6 py-4 rounded-full bg-[#111111] text-white border border-[#B08D57]/40 shadow-[0_12px_40px_rgba(176,141,87,0.25)] cursor-pointer group z-[99999]"
+            className="relative flex items-center gap-3 px-6 py-4 rounded-full bg-[#0a0a0a] text-white border border-[#B08D57]/40 shadow-[0_12px_40px_rgba(176,141,87,0.25)] cursor-pointer group z-[99999]"
           >
             <span className="absolute inset-0 rounded-full border border-[#B08D57] opacity-60 animate-ping pointer-events-none scale-105" />
             <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#B08D57] to-[#DFD3C3] text-black">
@@ -516,9 +516,9 @@ export default function HokhiyotiAIStylist() {
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className={`
-              flex flex-col bg-[#FAF9F6] border border-[#B08D57]/30 shadow-[0_24px_80px_rgba(0,0,0,0.22)] z-[99999]
-              ${isMaximized ? 'fixed inset-0 rounded-none' : 'rounded-2xl'}
-              overflow-hidden transition-all duration-300
+              flex flex-col bg-[#FAF9F6] border border-[#B08D57]/30 shadow-editorial z-[99999]
+              ${isMaximized ? 'fixed inset-0 rounded-none' : 'rounded-xl'}
+              overflow-hidden transition-all duration-400
             `}
             style={
               !isMaximized && !isMinimized
@@ -538,7 +538,7 @@ export default function HokhiyotiAIStylist() {
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#111111] via-[#1A1A1A] to-[#111111] text-white border-b border-[#B08D57]/20 select-none">
+            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#0a0a0a] via-[#1A1A1A] to-[#0a0a0a] text-white border-b border-[#B08D57]/20 select-none">
               <div className="flex items-center gap-3">
                 <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#B08D57] to-[#DFD3C3] text-black">
                   <Sparkles className="w-4 h-4" />
@@ -797,15 +797,15 @@ export default function HokhiyotiAIStylist() {
                 </div>
 
                 {/* Suggestion Chips Area with dynamic translation */}
-                <div className="px-5 py-3 border-t border-[#B08D57]/10 bg-white">
-                  <div className="flex flex-wrap gap-2 max-h-[110px] overflow-y-auto custom-scrollbar select-none justify-center">
+                <div className="px-4 py-3 border-t border-[#B08D57]/10 bg-white">
+                  <div className="flex flex-row gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap select-none custom-scrollbar">
                     {CHIP_TRANSLATIONS.map(trans => {
                       const label = preferredLanguage === 'Assamese' ? trans.as : trans.en
                       return (
                         <button
                           key={trans.en}
                           onClick={() => handleSendMessage(trans.en, label)}
-                          className="px-3 py-1.5 text-[11px] font-sans font-medium text-[#111111] bg-[#FAF9F6] border border-[#B08D57]/20 rounded-full hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all cursor-pointer shadow-sm"
+                          className="flex-shrink-0 px-4 py-2 text-[11px] font-sans font-medium text-[#0a0a0a] bg-[#FAF9F6] border border-[#B08D57]/20 rounded-lg hover:bg-[#0a0a0a] hover:text-white hover:border-[#0a0a0a] transition-all duration-300 cursor-pointer shadow-sm"
                         >
                           {label}
                         </button>
