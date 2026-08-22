@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'wouter'
 import {
   Sparkles,
   X,
@@ -17,6 +18,7 @@ import {
   MessageSquare,
   Heart
 } from 'lucide-react'
+import { getWhatsAppProductUrl } from '../../lib/utils'
 
 // Define Product Item
 interface ProductItem {
@@ -687,9 +689,12 @@ export default function HokhiyotiAIStylist() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               {displayedProducts.map(product => {
                                 const isSaved = savedProductIds.includes(product.id)
-                                const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(
-                                  `Hello Hokhiyoti Biponi, I would like to buy ${product.name} (Price: ₹${product.price})!`
-                                )}`
+                                const whatsappUrl = getWhatsAppProductUrl({
+                                  productName: product.name,
+                                  price: product.price,
+                                  productId: product.id,
+                                  productUrl: typeof window !== 'undefined' ? `${window.location.origin}/#/product/${product.id}` : undefined,
+                                })
 
                                 return (
                                   <div
@@ -753,13 +758,13 @@ export default function HokhiyotiAIStylist() {
                                       </div>
 
                                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#B08D57]/10">
-                                        <a
-                                          href={`#/product/${product.id}`}
+                                        <Link
+                                          to={`/product/${product.id}`}
                                           className="flex items-center justify-center gap-1 py-1.5 text-[9px] font-medium text-[#111111] bg-[#FAF9F6] border border-[#B08D57]/20 rounded-lg hover:bg-[#111111] hover:text-white hover:border-[#111111] transition-all text-center"
                                         >
                                           <ExternalLink className="w-3 h-3" />
                                           {t.viewText}
-                                        </a>
+                                        </Link>
                                         <a
                                           href={whatsappUrl}
                                           target="_blank"

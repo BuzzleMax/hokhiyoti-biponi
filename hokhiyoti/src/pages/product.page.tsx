@@ -110,6 +110,7 @@ export default function ProductPage() {
   const whatsappUrl = getWhatsAppProductUrl({
     productName: product.name,
     price: product.price,
+    productId: product.id,
     selectedColour: selectedColor,
     selectedSize: product.enableSizes ? selectedSize : undefined,
     enableSizes: product.enableSizes,

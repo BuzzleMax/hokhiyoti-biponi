@@ -8,12 +8,13 @@ import { supabaseOrderService } from '../../services/supabase/order.service'
 const ProductCard = memo(function ProductCard({ product }: { product: Product }) {
   const img = product.images?.[0]
   const hoverImg = product.images?.[1] || img
-  const targetPath = `/product/${product.slug || product.id}`
+  const targetPath = `/product/${product.id}`
   const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${targetPath}` : undefined
 
   const whatsappUrl = getWhatsAppProductUrl({
     productName: product.name,
     price: product.price,
+    productId: product.id,
     productUrl: fullUrl,
   })
 

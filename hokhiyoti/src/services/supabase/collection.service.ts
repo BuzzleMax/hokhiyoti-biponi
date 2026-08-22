@@ -52,17 +52,9 @@ export const supabaseCollectionService = {
   },
 
   async getFeaturedCollections(bypassCache = false): Promise<Collection[]> {
-    if (cachedCollections && !bypassCache) {
-      return cachedCollections.filter(c => c.featured)
-    }
-    const { data, error } = await supabase
-      .from('collections')
-      .select('id, name, slug, description, featured, image_url, created_at')
-      .eq('featured', true)
-      .order('sort_order', { ascending: true })
-
-    if (error) throw error
-    return (data || []).map(rowToCollection)
+    const all = await this.listCollections(bypassCache)
+    const featured = all.filter(c => c.featured)
+    return featured.length > 0 ? featured : all
   },
 
   async getCollectionBySlug(slug: string): Promise<Collection> {

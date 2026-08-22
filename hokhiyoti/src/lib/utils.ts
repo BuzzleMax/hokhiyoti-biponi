@@ -2,7 +2,7 @@ export function cn(...classes: Array<string | undefined | null | false>) {
   return classes.filter(Boolean).join(' ')
 }
 
-const WHATSAPP_PHONE = '916003426591'
+export const WHATSAPP_PHONE = '916003426591'
 
 export function calculateCommission(
   price: number,
@@ -24,38 +24,43 @@ export function formatPriceINR(price: number) {
 export function buildWhatsAppMessage(options: {
   productName: string
   price: number
+  productId?: string
   selectedColour?: string
   selectedSize?: string
   enableSizes?: boolean
   productUrl?: string
   customerNote?: string
 }) {
-  const { productName, price, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
+  const { productName, price, productId, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
 
   const lines = [
-    'Hello Hokhiyoti Biponi! I\'m interested in purchasing',
-    productName,
+    'Hello Hokhiyoti Biponi, I would like to enquire about:',
     '',
-    'Price: ₹' + price.toLocaleString('en-IN'),
+    `Product: ${productName}`,
+    `Price: ₹${price.toLocaleString('en-IN')}`,
   ]
 
+  if (productId) {
+    lines.push(`Product ID: ${productId}`)
+  }
+
   if (selectedColour) {
-    lines.push('', 'Colour: ' + selectedColour)
+    lines.push(`Colour: ${selectedColour}`)
   }
 
   if (enableSizes && selectedSize) {
-    lines.push('Size: ' + selectedSize)
+    lines.push(`Size: ${selectedSize}`)
   }
 
   if (productUrl) {
-    lines.push('', 'Product URL: ' + productUrl)
+    lines.push('', `Product URL: ${productUrl}`)
   }
 
   if (customerNote) {
-    lines.push('', 'Note: ' + customerNote)
+    lines.push('', `Note: ${customerNote}`)
   }
 
-  lines.push('', 'Could you please confirm availability and delivery details?')
+  lines.push('', 'Please let me know about availability and shipping.')
 
   return lines.join('\n')
 }
@@ -63,6 +68,7 @@ export function buildWhatsAppMessage(options: {
 export function getWhatsAppProductUrl(options: {
   productName: string
   price: number
+  productId?: string
   selectedColour?: string
   selectedSize?: string
   enableSizes?: boolean

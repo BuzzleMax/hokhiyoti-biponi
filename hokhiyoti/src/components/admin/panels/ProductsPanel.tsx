@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 import { supabaseProductService } from '../../../services/supabase/product.service'
+import { supabaseCategoryService } from '../../../services/supabase/category.service'
+import { supabaseCollectionService } from '../../../services/supabase/collection.service'
 import type { Product } from '../../../types/product.types'
+import type { Category } from '../../../types/category.types'
+import type { Collection } from '../../../types/collection.types'
 import ProductMediaManager, { type ManagedMedia } from '../ProductMediaManager'
 import { Search, Plus, Eye, EyeOff, Copy, Trash2, XCircle } from 'lucide-react'
 
 export default function ProductsPanel() {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -47,6 +53,15 @@ export default function ProductsPanel() {
 
   useEffect(() => {
     loadProducts(true)
+    Promise.all([
+      supabaseCategoryService.listCategories(),
+      supabaseCollectionService.listCollections()
+    ])
+      .then(([cats, cols]) => {
+        setCategories(cats)
+        setCollections(cols)
+      })
+      .catch((err) => console.error('Failed to load categories/collections:', err))
   }, [])
 
   const loadProducts = async (isInitial = true) => {
@@ -456,6 +471,79 @@ export default function ProductsPanel() {
                     className="w-full p-2.5 border rounded-lg"
                     placeholder="royal-muga-silk-mekhela-sador"
                   />
+                </div>
+              </div>
+
+              {/* Category & Collection Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold mb-1">Category</label>
+                  {categories.length > 0 ? (
+                    <select
+                      value={form.categorySlug}
+                      onChange={(e) => {
+                        const cat = categories.find((c) => c.slug === e.target.value)
+                        setForm({
+                          ...form,
+                          categorySlug: e.target.value,
+                          categoryName: cat ? cat.name : e.target.value,
+                        })
+                      }}
+                      className="w-full p-2.5 border rounded-lg bg-white"
+                    >
+                      <option value="">-- Select Category --</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.slug}>{c.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.categoryName}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+                        setForm({ ...form, categoryName: val, categorySlug: slug })
+                      }}
+                      className="w-full p-2.5 border rounded-lg"
+                      placeholder="e.g. Mekhela Chador"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1">Collection</label>
+                  {collections.length > 0 ? (
+                    <select
+                      value={form.collectionSlug}
+                      onChange={(e) => {
+                        const col = collections.find((c) => c.slug === e.target.value)
+                        setForm({
+                          ...form,
+                          collectionSlug: e.target.value,
+                          collectionName: col ? col.name : e.target.value,
+                        })
+                      }}
+                      className="w-full p-2.5 border rounded-lg bg-white"
+                    >
+                      <option value="">-- Select Collection --</option>
+                      {collections.map((c) => (
+                        <option key={c.id} value={c.slug}>{c.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.collectionName}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+                        setForm({ ...form, collectionName: val, collectionSlug: slug })
+                      }}
+                      className="w-full p-2.5 border rounded-lg"
+                      placeholder="e.g. Royal Silk Edit"
+                    />
+                  )}
                 </div>
               </div>
 

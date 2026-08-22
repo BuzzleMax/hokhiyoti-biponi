@@ -58,6 +58,7 @@ export default function SearchPage() {
         limit,
         categorySlug: selectedCategory !== 'all' ? selectedCategory : undefined,
         collectionSlug: selectedCollection !== 'all' ? selectedCollection : undefined,
+        searchQuery: query.trim() || undefined,
         cursor: activeCursor
       }
 
@@ -69,11 +70,15 @@ export default function SearchPage() {
       let filtered = res.filter((p) => {
         if (q.length > 0) {
           const matchName = p.name.toLowerCase().includes(q)
-          const matchDesc = p.description.toLowerCase().includes(q)
-          if (!matchName && !matchDesc) return false
+          const matchDesc = p.description ? p.description.toLowerCase().includes(q) : false
+          const matchFabric = p.fabric ? p.fabric.toLowerCase().includes(q) : false
+          const matchCat = p.category ? p.category.name.toLowerCase().includes(q) : false
+          const matchCol = p.collection ? p.collection.name.toLowerCase().includes(q) : false
+          const matchHighlights = p.highlights ? p.highlights.some((h) => h.toLowerCase().includes(q)) : false
+          if (!matchName && !matchDesc && !matchFabric && !matchCat && !matchCol && !matchHighlights) return false
         }
         if (selectedFabric !== 'all' && p.fabric !== selectedFabric) return false
-        if (selectedColour !== 'all' && !p.colours.some((c) => c.name === selectedColour)) return false
+        if (selectedColour !== 'all' && (!p.colours || !p.colours.some((c) => c.name && c.name.toLowerCase() === selectedColour.toLowerCase()))) return false
         if (selectedAvailability === 'in_stock' && p.availabilityStatus === 'out_of_stock') return false
         if (selectedAvailability === 'out_of_stock' && p.availabilityStatus !== 'out_of_stock') return false
         return true

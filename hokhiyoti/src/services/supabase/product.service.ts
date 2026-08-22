@@ -184,10 +184,12 @@ export const supabaseProductService = {
   `,
 
   listSelectQuery: `
-    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_slug, collection_slug, created_at, featured, new_arrival, best_seller,
+    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, fabric, colors, sizes, highlights, images, enable_sizes,
     categories (id, slug, name),
     collections (id, slug, name),
-    product_images (id, image_url, alt_text, sort_order, is_cover)
+    product_images (id, image_url, alt_text, sort_order, is_cover),
+    product_colours (id, colour_name, hex_code, image_id),
+    product_sizes (id, size, stock_quantity)
   `,
 
   async getProducts(params?: {
@@ -198,6 +200,7 @@ export const supabaseProductService = {
     bestSeller?: boolean
     includeInactive?: boolean
     heavy?: boolean
+    searchQuery?: string
     limit?: number
     cursor?: PaginationCursor | null
   }): Promise<Product[]> {
@@ -209,10 +212,20 @@ export const supabaseProductService = {
     }
 
     if (params?.categorySlug) {
-      query = query.eq('category_slug', params.categorySlug)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.categorySlug)
+      if (isUuid) {
+        query = query.or(`category_id.eq.${params.categorySlug},category_slug.eq.${params.categorySlug}`)
+      } else {
+        query = query.or(`category_slug.eq.${params.categorySlug},category_name.ilike.%${params.categorySlug}%`)
+      }
     }
     if (params?.collectionSlug) {
-      query = query.eq('collection_slug', params.collectionSlug)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.collectionSlug)
+      if (isUuid) {
+        query = query.or(`collection_id.eq.${params.collectionSlug},collection_slug.eq.${params.collectionSlug}`)
+      } else {
+        query = query.or(`collection_slug.eq.${params.collectionSlug},collection_name.ilike.%${params.collectionSlug}%`)
+      }
     }
     if (params?.featured) {
       query = query.eq('featured', true)
@@ -222,6 +235,10 @@ export const supabaseProductService = {
     }
     if (params?.bestSeller) {
       query = query.eq('best_seller', true)
+    }
+    if (params?.searchQuery && params.searchQuery.trim()) {
+      const q = params.searchQuery.trim().replace(/["'\\]/g, '')
+      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,category_name.ilike.%${q}%,collection_name.ilike.%${q}%,fabric.ilike.%${q}%`)
     }
 
     query = applyCursorFilter(query, params?.cursor)
@@ -234,7 +251,7 @@ export const supabaseProductService = {
     const { data, error } = await query
 
     if (error) {
-      console.warn('Supabase product query error:', error)
+      console.error('Supabase product query error:', error.message, error.details, error.hint, error.code, error)
       return []
     }
 
@@ -242,15 +259,27 @@ export const supabaseProductService = {
   },
 
   async getBestSellers(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    return this.getProducts({ bestSeller: true, limit, cursor })
+    const res = await this.getProducts({ bestSeller: true, limit, cursor })
+    if (res.length === 0 && !cursor) {
+      return this.getProducts({ limit, cursor })
+    }
+    return res
   },
 
   async getFeaturedProducts(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    return this.getProducts({ featured: true, limit, cursor })
+    const res = await this.getProducts({ featured: true, limit, cursor })
+    if (res.length === 0 && !cursor) {
+      return this.getProducts({ limit, cursor })
+    }
+    return res
   },
 
   async getNewArrivals(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    return this.getProducts({ newArrival: true, limit, cursor })
+    const res = await this.getProducts({ newArrival: true, limit, cursor })
+    if (res.length === 0 && !cursor) {
+      return this.getProducts({ limit, cursor })
+    }
+    return res
   },
 
   async getProductsByCategory(categorySlug: string, limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
@@ -352,14 +381,37 @@ export const supabaseProductService = {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') + `-${Date.now().toString().slice(-4)}`
 
+    let category_id: string | null = null
+    let collection_id: string | null = null
+
+    if (productData.categorySlug) {
+      try {
+        const { data: catRow } = await supabase.from('categories').select('id').eq('slug', productData.categorySlug).maybeSingle()
+        if (catRow) category_id = catRow.id
+      } catch (err) {
+        console.warn('Category ID lookup error:', err)
+      }
+    }
+
+    if (productData.collectionSlug) {
+      try {
+        const { data: colRow } = await supabase.from('collections').select('id').eq('slug', productData.collectionSlug).maybeSingle()
+        if (colRow) collection_id = colRow.id
+      } catch (err) {
+        console.warn('Collection ID lookup error:', err)
+      }
+    }
+
     const row = {
       name: productData.name,
       slug,
       description: productData.description,
       price: productData.price,
       compare_price: productData.comparePrice || null,
+      category_id,
       category_slug: productData.categorySlug || null,
       category_name: productData.categoryName || null,
+      collection_id,
       collection_slug: productData.collectionSlug || null,
       collection_name: productData.collectionName || null,
       enable_sizes: productData.enableSizes || false,
@@ -486,9 +538,33 @@ export const supabaseProductService = {
     if (updates.description !== undefined) rowUpdates.description = updates.description
     if (updates.price !== undefined) rowUpdates.price = updates.price
     if (updates.comparePrice !== undefined) rowUpdates.compare_price = updates.comparePrice
-    if (updates.categorySlug !== undefined) rowUpdates.category_slug = updates.categorySlug
+    if (updates.categorySlug !== undefined) {
+      rowUpdates.category_slug = updates.categorySlug
+      if (updates.categorySlug) {
+        try {
+          const { data: catRow } = await supabase.from('categories').select('id').eq('slug', updates.categorySlug).maybeSingle()
+          if (catRow) rowUpdates.category_id = catRow.id
+        } catch (err) {
+          console.warn('Category ID lookup error:', err)
+        }
+      } else {
+        rowUpdates.category_id = null
+      }
+    }
     if (updates.categoryName !== undefined) rowUpdates.category_name = updates.categoryName
-    if (updates.collectionSlug !== undefined) rowUpdates.collection_slug = updates.collectionSlug
+    if (updates.collectionSlug !== undefined) {
+      rowUpdates.collection_slug = updates.collectionSlug
+      if (updates.collectionSlug) {
+        try {
+          const { data: colRow } = await supabase.from('collections').select('id').eq('slug', updates.collectionSlug).maybeSingle()
+          if (colRow) rowUpdates.collection_id = colRow.id
+        } catch (err) {
+          console.warn('Collection ID lookup error:', err)
+        }
+      } else {
+        rowUpdates.collection_id = null
+      }
+    }
     if (updates.collectionName !== undefined) rowUpdates.collection_name = updates.collectionName
     if (updates.enableSizes !== undefined) rowUpdates.enable_sizes = updates.enableSizes
     if (updates.fabric !== undefined) rowUpdates.fabric = updates.fabric

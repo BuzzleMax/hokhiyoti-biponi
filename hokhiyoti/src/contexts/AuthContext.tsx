@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
-import { getCurrentUser, getCurrentSession, onAuthStateChange, signOut } from '../lib/auth'
-import { supabase } from '../lib/supabase'
+import { getCurrentSession, onAuthStateChange, signOut } from '../lib/auth'
 
 interface AuthContextType {
   user: User | null
@@ -22,9 +21,8 @@ export function AuthProvider({ children }: { children: any }) {
     const initializeAuth = async () => {
       try {
         const currentSession = await getCurrentSession()
-        const currentUser = await getCurrentUser()
         setSession(currentSession)
-        setUser(currentUser)
+        setUser(currentSession?.user ?? null)
       } catch (error) {
         console.error('Error initializing auth:', error)
       } finally {
@@ -38,8 +36,6 @@ export function AuthProvider({ children }: { children: any }) {
     const handleEmailVerification = async () => {
       const hash = window.location.hash
       if (hash && hash.includes('access_token')) {
-        // Supabase will automatically handle the hash and session
-        // We just need to wait for the auth state change
         console.log('Email verification detected in URL')
       }
     }
@@ -47,19 +43,10 @@ export function AuthProvider({ children }: { children: any }) {
     handleEmailVerification()
 
     // Listen for auth state changes
-    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session)
-      
-      // When user returns from email verification, refresh session to get updated status
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const { data } = await supabase.auth.refreshSession()
-        setSession(data.session)
-        setUser(data.session?.user ?? null)
-      } else {
-        setSession(session)
-        setUser(session?.user ?? null)
-      }
-      
+      setSession(session)
+      setUser(session?.user ?? null)
       setLoading(false)
     })
 
