@@ -55,6 +55,7 @@ export default function ProductsPanel() {
     newArrival: false,
     bestSeller: false,
     explore: false,
+    premiumCollection: false,
     outOfStock: false,
     stockQuantity: 10,
     media: [] as ManagedMedia[],
@@ -136,6 +137,7 @@ export default function ProductsPanel() {
       newArrival: true,
       bestSeller: false,
       explore: false,
+      premiumCollection: false,
       outOfStock: false,
       stockQuantity: 10,
       media: [],
@@ -190,6 +192,7 @@ export default function ProductsPanel() {
       newArrival: prod.newArrival,
       bestSeller: prod.bestSeller,
       explore: Boolean(prod.explore),
+      premiumCollection: Boolean(prod.premiumCollection),
       outOfStock: Boolean(prod.outOfStock || prod.availabilityStatus === 'out_of_stock'),
       stockQuantity: prod.stockQuantity,
       media,
@@ -249,6 +252,7 @@ export default function ProductsPanel() {
       newArrival: form.newArrival,
       bestSeller: form.bestSeller,
       explore: form.explore,
+      premiumCollection: form.premiumCollection,
       outOfStock: form.outOfStock,
       stockQuantity: Number(form.stockQuantity),
       images: images.map((img) => ({ url: img.url, alt: img.alt, isCover: img.isCover })),
@@ -435,6 +439,11 @@ export default function ProductsPanel() {
                         {p.explore && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                             Explore ✓
+                          </span>
+                        )}
+                        {p.premiumCollection && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            Premium Collection ✓
                           </span>
                         )}
                         {(p.outOfStock || p.availabilityStatus === 'out_of_stock') && (
@@ -775,6 +784,14 @@ export default function ProductsPanel() {
                     onChange={(e) => setForm({ ...form, explore: e.target.checked })}
                   />
                   <span className="font-semibold text-xs sm:text-sm text-emerald-800">Add to Explore</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.premiumCollection}
+                    onChange={(e) => setForm({ ...form, premiumCollection: e.target.checked })}
+                  />
+                  <span className="font-semibold text-xs sm:text-sm text-amber-900">Add to Premium Collection</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input

@@ -81,6 +81,7 @@ export type Product = {
   newArrival: boolean
   bestSeller: boolean
   explore: boolean
+  premiumCollection: boolean
   outOfStock?: boolean
   showVideoOnHome?: boolean
   active?: boolean
