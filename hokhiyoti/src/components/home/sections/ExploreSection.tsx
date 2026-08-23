@@ -61,13 +61,13 @@ export default function ExploreSection() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
         <div>
           <span className="font-sans text-[11px] font-medium tracking-[0.25em] text-[#B08D57] uppercase block">
-            DISCOVERY
+            EXPLORE
           </span>
           <h2 className="mt-2 font-heading text-2xl sm:text-3xl md:text-4xl font-medium text-[#111111] leading-tight">
-            EXPLORE
+            Explore
           </h2>
           <p className="mt-1 font-sans text-xs sm:text-sm text-[#8a8a8a] font-light">
-            Explore more handpicked pieces from Hokhiyoti Biponi.
+            Discover more handpicked pieces from Hokhiyoti Biponi.
           </p>
         </div>
       </div>
