@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from 'react'
 import { useLocation } from 'wouter'
 import { useAuth } from '../contexts/AuthContext'
 import ErrorBoundary from '../components/ui/ErrorBoundary'
-import ProtectedRoute from '../components/auth/ProtectedRoute'
+import AdminProtectedRoute from '../components/auth/AdminProtectedRoute'
 
 import {
   Package,
@@ -57,7 +57,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('orders')
 
   return (
-    <ProtectedRoute redirectTo="/admin-login">
+    <AdminProtectedRoute redirectTo="/admin-login">
       <div className="min-h-screen bg-[#FAF9F6] text-[#111111]">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
           {/* Top Bar Header */}
@@ -137,6 +137,6 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </AdminProtectedRoute>
   )
 }

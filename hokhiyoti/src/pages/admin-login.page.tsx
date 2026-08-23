@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
-import { signInWithEmail } from '../lib/auth'
+import { signInWithEmail, checkIsAdmin } from '../lib/auth'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminLoginPage() {
@@ -8,18 +8,23 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
   const [, setLocation] = useLocation()
-  const { user } = useAuth()
+  const { user, isAdmin, isAdminLoading } = useAuth()
 
-  // Redirect if already logged in
-  if (user) {
-    setLocation('/admin')
-    return null
-  }
+  // Redirect if already logged in and is admin
+  useEffect(() => {
+    if (!isAdminLoading && user && isAdmin) {
+      setLocation('/admin')
+    } else if (!isAdminLoading && user && !isAdmin) {
+      setAccessDenied(true)
+    }
+  }, [user, isAdmin, isAdminLoading, setLocation])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setAccessDenied(false)
     setLoading(true)
 
     const { data, error: signInError } = await signInWithEmail(email, password)
@@ -32,7 +37,13 @@ export default function AdminLoginPage() {
     }
 
     if (data.user) {
-      setLocation('/admin')
+      // Check if user is admin
+      const adminStatus = await checkIsAdmin(data.user.id)
+      if (adminStatus) {
+        setLocation('/admin')
+      } else {
+        setAccessDenied(true)
+      }
     }
   }
 
@@ -40,6 +51,15 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="w-full max-w-md p-8">
         <h1 className="text-2xl font-medium text-[#111111] mb-6 text-center">Admin Login</h1>
+        
+        {accessDenied && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-800 text-center">
+              <strong>Access Denied:</strong> You don't have admin privileges. This login is for authorized administrators only.
+            </p>
+          </div>
+        )}
+        
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <input
@@ -48,6 +68,7 @@ export default function AdminLoginPage() {
               onChange={(e) => {
                 setEmail(e.target.value)
                 setError('')
+                setAccessDenied(false)
               }}
               placeholder="Email"
               required
@@ -61,6 +82,7 @@ export default function AdminLoginPage() {
               onChange={(e) => {
                 setPassword(e.target.value)
                 setError('')
+                setAccessDenied(false)
               }}
               placeholder="Password"
               required

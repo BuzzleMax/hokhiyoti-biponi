@@ -87,3 +87,23 @@ export async function resendVerificationEmail(email: string) {
   })
   return { data, error }
 }
+
+export async function checkIsAdmin(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('admin_profiles')
+      .select('id')
+      .eq('id', userId)
+      .eq('active', true)
+      .single()
+    
+    if (error || !data) {
+      return false
+    }
+    
+    return true
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    return false
+  }
+}
