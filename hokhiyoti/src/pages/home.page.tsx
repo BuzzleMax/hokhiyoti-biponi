@@ -3,6 +3,7 @@ import {
   FeaturedProducts,
   NewArrivals,
   BestSellers,
+  ExploreSection,
   AboutHokhiyoti,
   LuxuryHero,
   StoryBanner,
@@ -18,6 +19,7 @@ export default function HomePage() {
       <FeaturedProducts />
       <NewArrivals />
       <BestSellers />
+      <ExploreSection />
       <AboutHokhiyoti />
       <StoryBanner />
       <Testimonials />

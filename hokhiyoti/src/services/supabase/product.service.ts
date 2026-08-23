@@ -148,6 +148,7 @@ function rowToProduct(row: any): Product {
     featured: Boolean(row.featured),
     newArrival: Boolean(row.new_arrival),
     bestSeller: Boolean(row.best_seller),
+    explore: Boolean(row.explore),
     outOfStock: Boolean(row.out_of_stock || availabilityStatus === 'out_of_stock'),
     showVideoOnHome: Boolean(row.show_video_on_home || row.show_video_home || videos.some((v) => v.isCover)),
     active: row.active !== undefined ? Boolean(row.active) : true,
@@ -186,7 +187,7 @@ export const supabaseProductService = {
   `,
 
   listSelectQuery: `
-    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, out_of_stock, fabric, colors, sizes, highlights, images, videos, enable_sizes,
+    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, explore, out_of_stock, fabric, colors, sizes, highlights, images, videos, enable_sizes,
     categories (id, slug, name),
     collections (id, slug, name),
     product_images (id, image_url, alt_text, sort_order, is_cover),
@@ -201,6 +202,7 @@ export const supabaseProductService = {
     featured?: boolean
     newArrival?: boolean
     bestSeller?: boolean
+    explore?: boolean
     includeInactive?: boolean
     heavy?: boolean
     searchQuery?: string
@@ -239,6 +241,9 @@ export const supabaseProductService = {
     if (params?.bestSeller) {
       query = query.eq('best_seller', true)
     }
+    if (params?.explore) {
+      query = query.eq('explore', true)
+    }
     if (params?.searchQuery && params.searchQuery.trim()) {
       const q = params.searchQuery.trim().replace(/["'\\]/g, '')
       query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,category_name.ilike.%${q}%,collection_name.ilike.%${q}%,fabric.ilike.%${q}%`)
@@ -271,6 +276,10 @@ export const supabaseProductService = {
 
   async getNewArrivals(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
     return this.getProducts({ newArrival: true, limit, cursor })
+  },
+
+  async getExploreProducts(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
+    return this.getProducts({ explore: true, limit, cursor })
   },
 
   async getProductsByCategory(categorySlug: string, limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
@@ -355,6 +364,7 @@ export const supabaseProductService = {
     featured?: boolean
     newArrival?: boolean
     bestSeller?: boolean
+    explore?: boolean
     outOfStock?: boolean
     active?: boolean
     stockQuantity?: number
@@ -417,6 +427,7 @@ export const supabaseProductService = {
       featured: productData.featured || false,
       new_arrival: productData.newArrival || false,
       best_seller: productData.bestSeller || false,
+      explore: productData.explore || false,
       out_of_stock: isOutOfStock,
       availability_status: (isOutOfStock || (productData.stockQuantity !== undefined && productData.stockQuantity <= 0)) ? 'out_of_stock' : 'in_stock',
       active: productData.active !== undefined ? productData.active : true,
@@ -513,6 +524,7 @@ export const supabaseProductService = {
       featured?: boolean
       newArrival?: boolean
       bestSeller?: boolean
+      explore?: boolean
       outOfStock?: boolean
       active?: boolean
       archived?: boolean
@@ -572,6 +584,7 @@ export const supabaseProductService = {
     if (updates.featured !== undefined) rowUpdates.featured = updates.featured
     if (updates.newArrival !== undefined) rowUpdates.new_arrival = updates.newArrival
     if (updates.bestSeller !== undefined) rowUpdates.best_seller = updates.bestSeller
+    if (updates.explore !== undefined) rowUpdates.explore = updates.explore
     if (updates.outOfStock !== undefined) {
       rowUpdates.out_of_stock = updates.outOfStock
       if (updates.outOfStock) {

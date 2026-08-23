@@ -54,6 +54,7 @@ export default function ProductsPanel() {
     featured: false,
     newArrival: false,
     bestSeller: false,
+    explore: false,
     outOfStock: false,
     stockQuantity: 10,
     media: [] as ManagedMedia[],
@@ -134,6 +135,7 @@ export default function ProductsPanel() {
       featured: false,
       newArrival: true,
       bestSeller: false,
+      explore: false,
       outOfStock: false,
       stockQuantity: 10,
       media: [],
@@ -187,6 +189,7 @@ export default function ProductsPanel() {
       featured: prod.featured,
       newArrival: prod.newArrival,
       bestSeller: prod.bestSeller,
+      explore: Boolean(prod.explore),
       outOfStock: Boolean(prod.outOfStock || prod.availabilityStatus === 'out_of_stock'),
       stockQuantity: prod.stockQuantity,
       media,
@@ -245,6 +248,7 @@ export default function ProductsPanel() {
       featured: form.featured,
       newArrival: form.newArrival,
       bestSeller: form.bestSeller,
+      explore: form.explore,
       outOfStock: form.outOfStock,
       stockQuantity: Number(form.stockQuantity),
       images: images.map((img) => ({ url: img.url, alt: img.alt, isCover: img.isCover })),
@@ -426,6 +430,11 @@ export default function ProductsPanel() {
                         {p.bestSeller && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
                             Best Seller ✓
+                          </span>
+                        )}
+                        {p.explore && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            Explore ✓
                           </span>
                         )}
                         {(p.outOfStock || p.availabilityStatus === 'out_of_stock') && (
@@ -757,7 +766,15 @@ export default function ProductsPanel() {
                     checked={form.bestSeller}
                     onChange={(e) => setForm({ ...form, bestSeller: e.target.checked })}
                   />
-                  <span className="font-semibold">Best Seller</span>
+                  <span className="font-semibold text-xs sm:text-sm">Best Seller</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.explore}
+                    onChange={(e) => setForm({ ...form, explore: e.target.checked })}
+                  />
+                  <span className="font-semibold text-xs sm:text-sm text-emerald-800">Add to Explore</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -765,7 +782,7 @@ export default function ProductsPanel() {
                     checked={form.outOfStock}
                     onChange={(e) => setForm({ ...form, outOfStock: e.target.checked })}
                   />
-                  <span className="font-semibold text-red-700">Out of Stock</span>
+                  <span className="font-semibold text-xs sm:text-sm text-red-700">Out of Stock</span>
                 </label>
               </div>
 

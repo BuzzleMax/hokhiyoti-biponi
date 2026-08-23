@@ -10,4 +10,4 @@ export { default as StoryBanner } from './StoryBanner'
 export { default as Testimonials } from './Testimonials'
 export { default as NewsletterSection } from './NewsletterSection'
 export { default as InstagramStyleGallery } from './InstagramStyleGallery'
-
+export { default as ExploreSection } from './ExploreSection'

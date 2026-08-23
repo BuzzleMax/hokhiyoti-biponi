@@ -80,6 +80,7 @@ export type Product = {
   featured: boolean
   newArrival: boolean
   bestSeller: boolean
+  explore: boolean
   outOfStock?: boolean
   showVideoOnHome?: boolean
   active?: boolean
