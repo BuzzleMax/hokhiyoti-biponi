@@ -1,14 +1,19 @@
 export type OrderStatus =
+  | 'Confirmed'
+  | 'Paid'
+  | 'Completed'
+  | 'Cancelled'
+  | 'confirmed'
+  | 'paid'
+  | 'completed'
+  | 'cancelled'
   | 'lead_created'
   | 'customer_contacted'
-  | 'confirmed'
   | 'packed'
   | 'shipped'
   | 'delivered'
-  | 'cancelled'
   | 'rejected'
   | 'archived'
-  // Legacy statuses kept for backward compatibility with existing DB rows
   | 'pending'
   | 'processing'
 
@@ -20,10 +25,13 @@ export type PaymentMethod = 'UPI' | 'Bank Transfer' | 'Cash' | 'Other' | string
 
 export type Order = {
   id: string
+  orderId: string
   orderNumber?: string
   productId: string
   productName: string
+  sellingPrice: number
   productPrice: number
+  commissionRate: number
   commissionPercentage: number
   commissionAmount: number
   sellerEarnings: number
@@ -48,12 +56,15 @@ export type Order = {
 }
 
 export type CreateOrderInput = {
+  orderId?: string
   productId: string
   productName: string
   productPrice: number
-  commissionPercentage: number
-  commissionAmount: number
-  sellerEarnings: number
+  sellingPrice?: number
+  commissionRate?: number
+  commissionPercentage?: number
+  commissionAmount?: number
+  sellerEarnings?: number
   customerName?: string
   customerPhone?: string
   customerEmail?: string
@@ -62,6 +73,24 @@ export type CreateOrderInput = {
   selectedSize?: string
   productUrl?: string
   customerDetails?: Record<string, unknown>
+  status?: OrderStatus
+}
+
+export type CommissionPayment = {
+  id: string
+  amount: number
+  paymentDate: string
+  notes?: string
+  createdAt: string
+}
+
+export type OwnerCommissionSummary = {
+  monthYearLabel: string
+  confirmedSales: number
+  completedSales: number
+  yourCommission: number
+  paidToYou: number
+  remaining: number
 }
 
 export type OrderTimeline = {
@@ -79,7 +108,6 @@ export type PayoutSummary = {
   totalCommission: number
   paidAmount: number
   processingAmount: number
-  // New commission breakdown
   pendingCommission: number
   earnedCommission: number
   cancelledCommission: number
@@ -87,14 +115,9 @@ export type PayoutSummary = {
 }
 
 export type OrderStatusCounts = {
-  leadsCreated: number
-  customerContacted: number
   confirmed: number
-  packed: number
-  shipped: number
-  delivered: number
+  paid: number
+  completed: number
   cancelled: number
-  rejected: number
-  archived: number
   total: number
 }

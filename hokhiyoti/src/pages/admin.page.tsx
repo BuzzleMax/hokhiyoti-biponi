@@ -22,6 +22,7 @@ type AdminTab =
   | 'analytics'
   | 'products'
   | 'orders'
+  | 'commission-dashboard'
   | 'seller-payouts'
   | 'marketplace-settings'
   | 'reviews'
@@ -29,18 +30,17 @@ type AdminTab =
   | 'collections'
   | 'watch-buy'
 
-
 // Lazy-load panels for modular code-splitting
 const AnalyticsPanel = lazy(() => import('../components/admin/panels/AnalyticsPanel'))
 const ProductsPanel = lazy(() => import('../components/admin/panels/ProductsPanel'))
 const OrdersPanel = lazy(() => import('../components/admin/panels/OrdersPanel'))
+const CommissionDashboardPanel = lazy(() => import('../components/admin/panels/CommissionDashboardPanel'))
 const SellerPayoutsPanel = lazy(() => import('../components/admin/panels/SellerPayoutsPanel'))
 const MarketplaceSettingsPanel = lazy(() => import('../components/admin/panels/MarketplaceSettingsPanel'))
 const ReviewsPanel = lazy(() => import('../components/admin/panels/ReviewsPanel'))
 const CategoriesPanel = lazy(() => import('../components/admin/panels/CategoriesPanel'))
 const CollectionsPanel = lazy(() => import('../components/admin/panels/CollectionsPanel'))
 const WatchBuyPanel = lazy(() => import('../components/admin/panels/WatchBuyPanel'))
-
 
 function TabPanelSkeleton() {
   return (
@@ -54,7 +54,7 @@ function TabPanelSkeleton() {
 export default function AdminPage() {
   const [, setLocation] = useLocation()
   const { signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState<AdminTab>('analytics')
+  const [activeTab, setActiveTab] = useState<AdminTab>('orders')
 
   return (
     <ProtectedRoute redirectTo="/admin-login">
@@ -88,16 +88,16 @@ export default function AdminPage() {
           {/* Tab Navigation */}
           <div className="flex gap-2 border-b border-black/10 overflow-x-auto scrollbar-none pb-1">
             {[
+              { id: 'orders', label: 'Orders (Aunt Panel)', icon: ShoppingCart },
+              { id: 'commission-dashboard', label: 'Owner Commission Dashboard', icon: DollarSign },
               { id: 'analytics', label: 'Analytics Dashboard', icon: BarChart3 },
               { id: 'products', label: 'Products', icon: Package },
-              { id: 'orders', label: 'Orders', icon: ShoppingCart },
               { id: 'seller-payouts', label: 'Seller Payouts', icon: DollarSign },
               { id: 'marketplace-settings', label: 'Commission Settings', icon: Percent },
               { id: 'reviews', label: 'Reviews', icon: Star },
               { id: 'categories', label: 'Categories', icon: FolderTree },
               { id: 'collections', label: 'Collections', icon: Layers },
               { id: 'watch-buy', label: 'Watch & Buy', icon: Play },
-
             ].map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -122,16 +122,16 @@ export default function AdminPage() {
           <div className="pt-2">
             <ErrorBoundary>
               <Suspense fallback={<TabPanelSkeleton />}>
+                {activeTab === 'orders' && <OrdersPanel />}
+                {activeTab === 'commission-dashboard' && <CommissionDashboardPanel />}
                 {activeTab === 'analytics' && <AnalyticsPanel />}
                 {activeTab === 'products' && <ProductsPanel />}
-                {activeTab === 'orders' && <OrdersPanel />}
                 {activeTab === 'seller-payouts' && <SellerPayoutsPanel />}
                 {activeTab === 'marketplace-settings' && <MarketplaceSettingsPanel />}
                 {activeTab === 'reviews' && <ReviewsPanel />}
                 {activeTab === 'categories' && <CategoriesPanel />}
                 {activeTab === 'collections' && <CollectionsPanel />}
                 {activeTab === 'watch-buy' && <WatchBuyPanel />}
-
               </Suspense>
             </ErrorBoundary>
           </div>

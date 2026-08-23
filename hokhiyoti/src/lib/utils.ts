@@ -25,20 +25,24 @@ export function buildWhatsAppMessage(options: {
   productName: string
   price: number
   productId?: string
+  orderId?: string
   selectedColour?: string
   selectedSize?: string
   enableSizes?: boolean
   productUrl?: string
   customerNote?: string
 }) {
-  const { productName, price, productId, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
+  const { productName, price, productId, orderId, selectedColour, selectedSize, enableSizes, productUrl, customerNote } = options
 
   const lines = [
-    'Hello Hokhiyoti Biponi, I would like to enquire about:',
-    '',
-    `Product: ${productName}`,
-    `Price: ₹${price.toLocaleString('en-IN')}`,
+    `Hello, I would like to buy ${productName}.`,
   ]
+
+  if (orderId) {
+    lines.push(`Order ID: ${orderId}`)
+  }
+
+  lines.push(`Price: ₹${price.toLocaleString('en-IN')}`)
 
   if (productId) {
     lines.push(`Product ID: ${productId}`)
@@ -53,14 +57,12 @@ export function buildWhatsAppMessage(options: {
   }
 
   if (productUrl) {
-    lines.push('', `Product URL: ${productUrl}`)
+    lines.push(`Product URL: ${productUrl}`)
   }
 
   if (customerNote) {
-    lines.push('', `Note: ${customerNote}`)
+    lines.push(`Note: ${customerNote}`)
   }
-
-  lines.push('', 'Please let me know about availability and shipping.')
 
   return lines.join('\n')
 }
@@ -69,6 +71,7 @@ export function getWhatsAppProductUrl(options: {
   productName: string
   price: number
   productId?: string
+  orderId?: string
   selectedColour?: string
   selectedSize?: string
   enableSizes?: boolean

@@ -114,25 +114,41 @@ export default function ProductPage() {
 
   const handleBuyClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+    let orderIdToUse: string | undefined
     try {
       const commissionPct = await supabaseOrderService.getCommissionPercentage()
       const { commissionAmount, sellerEarnings } = calculateCommission(product.price, commissionPct)
 
-      await supabaseOrderService.createOrder({
+      const newOrder = await supabaseOrderService.createOrder({
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
+        sellingPrice: product.price,
         commissionPercentage: commissionPct,
         commissionAmount,
         sellerEarnings,
         selectedColour: selectedColor,
         selectedSize: product.enableSizes ? selectedSize : undefined,
         productUrl: fullUrl,
+        status: 'Confirmed',
       })
+      orderIdToUse = newOrder.orderId || newOrder.orderNumber
     } catch (err) {
       console.error('Failed to save order, opening WhatsApp anyway:', err)
     }
-    window.open(whatsappUrl, '_blank', 'noreferrer')
+
+    const finalUrl = getWhatsAppProductUrl({
+      productName: product.name,
+      price: product.price,
+      productId: product.id,
+      orderId: orderIdToUse,
+      selectedColour: selectedColor,
+      selectedSize: product.enableSizes ? selectedSize : undefined,
+      enableSizes: product.enableSizes,
+      productUrl: fullUrl,
+    })
+
+    window.open(finalUrl, '_blank', 'noreferrer')
   }
 
   const handleShare = () => {

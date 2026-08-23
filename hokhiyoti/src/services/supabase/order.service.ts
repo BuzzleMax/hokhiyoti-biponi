@@ -15,22 +15,48 @@ const DEFAULT_COMMISSION_FALLBACK = 10
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToOrder(row: any): Order {
-  // Normalize legacy statuses to new values
-  let status: OrderStatus = (row.order_status as OrderStatus) || (row.status as OrderStatus) || 'lead_created'
-  if (status === 'pending') status = 'lead_created'
-  if (status === 'processing') status = 'confirmed'
+  const rawStatus = (row.order_status as string) || (row.status as string) || 'Confirmed'
+
+  let status: OrderStatus = 'Confirmed'
+  if (['Confirmed', 'confirmed', 'lead_created', 'customer_contacted', 'processing', 'pending'].includes(rawStatus)) {
+    status = 'Confirmed'
+  } else if (['Paid', 'paid', 'packed', 'shipped'].includes(rawStatus)) {
+    status = 'Paid'
+  } else if (['Completed', 'completed', 'delivered'].includes(rawStatus)) {
+    status = 'Completed'
+  } else if (['Cancelled', 'cancelled', 'rejected', 'archived'].includes(rawStatus)) {
+    status = 'Cancelled'
+  } else {
+    status = rawStatus as OrderStatus
+  }
+
+  const orderId = row.order_id || row.order_number || `HOK-${row.id ? String(row.id).slice(0, 4) : '1042'}`
+  const sellingPrice = Number(row.selling_price ?? row.product_price ?? row.total_amount ?? 0)
+  const commissionRate = Number(row.commission_rate ?? row.commission_percentage ?? DEFAULT_COMMISSION_FALLBACK)
+
+  let commissionAmount = Number(row.commission_amount ?? 0)
+  if (status === 'Cancelled') {
+    commissionAmount = 0
+  } else if (commissionAmount === 0 && sellingPrice > 0) {
+    commissionAmount = Math.round(sellingPrice * (commissionRate / 100))
+  }
+
+  const sellerEarnings = sellingPrice - commissionAmount
 
   return {
     id: row.id,
-    orderNumber: row.order_number || undefined,
+    orderId,
+    orderNumber: row.order_number || orderId,
     productId: row.product_id,
     productName: row.product_name,
-    productPrice: Number(row.product_price),
-    commissionPercentage: Number(row.commission_percentage ?? DEFAULT_COMMISSION_FALLBACK),
-    commissionAmount: Number(row.commission_amount ?? 0),
-    sellerEarnings: Number(row.seller_earnings ?? row.product_price),
-    customerName: row.customer_name || undefined,
-    customerPhone: row.customer_phone || undefined,
+    sellingPrice,
+    productPrice: sellingPrice,
+    commissionRate,
+    commissionPercentage: commissionRate,
+    commissionAmount,
+    sellerEarnings,
+    customerName: row.customer_name || 'WhatsApp Customer',
+    customerPhone: row.customer_phone || '',
     customerEmail: row.customer_email || undefined,
     customerAddress: row.customer_address || undefined,
     selectedColour: row.selected_colour || undefined,
@@ -38,8 +64,8 @@ function rowToOrder(row: any): Order {
     productUrl: row.product_url || undefined,
     customerDetails: typeof row.customer_details === 'object' ? row.customer_details : {},
     status,
-    commissionStatus: (row.commission_status as CommissionStatus) || 'none',
-    paymentStatus: (row.payment_status as PaymentStatus) || 'pending',
+    commissionStatus: status === 'Completed' ? 'earned' : status === 'Cancelled' ? 'cancelled' : 'pending',
+    paymentStatus: status === 'Paid' || status === 'Completed' ? 'paid' : 'pending',
     paymentMethod: row.payment_method || undefined,
     referenceNumber: row.reference_number || undefined,
     paidAt: row.paid_at || undefined,
@@ -55,31 +81,28 @@ function rowToTimeline(row: any): OrderTimeline {
   return {
     id: row.id,
     orderId: row.order_id,
-    status: (row.status as OrderStatus) || 'lead_created',
+    status: (row.status as OrderStatus) || 'Confirmed',
     changedBy: row.changed_by || 'Admin',
     note: row.note || undefined,
     createdAt: row.created_at || new Date().toISOString(),
   }
 }
 
-/**
- * Derive the commission_status from a given order status.
- * This is the single source of truth for the commission lifecycle.
- */
 function deriveCommissionStatus(status: OrderStatus): CommissionStatus {
   switch (status) {
+    case 'Confirmed':
     case 'confirmed':
-    case 'packed':
-    case 'shipped':
+    case 'Paid':
+    case 'paid':
       return 'pending'
-    case 'delivered':
+    case 'Completed':
+    case 'completed':
       return 'earned'
+    case 'Cancelled':
     case 'cancelled':
-      return 'cancelled'
     case 'rejected':
-      return 'rejected'
+      return 'cancelled'
     default:
-      // lead_created, customer_contacted, pending (legacy)
       return 'none'
   }
 }
@@ -96,10 +119,6 @@ export type GetOrdersParams = {
 }
 
 export const supabaseOrderService = {
-  /**
-   * Fetch the current marketplace commission percentage from marketplace_settings.
-   * Falls back to 10% if not set.
-   */
   async getCommissionPercentage(bypassCache = false): Promise<number> {
     if (cachedCommissionPct !== null && !bypassCache) {
       return cachedCommissionPct
@@ -124,9 +143,6 @@ export const supabaseOrderService = {
     }
   },
 
-  /**
-   * Update the marketplace commission percentage in marketplace_settings.
-   */
   async setCommissionPercentage(percentage: number): Promise<void> {
     cachedCommissionPct = percentage
     const { data: existing } = await supabase
@@ -158,18 +174,25 @@ export const supabaseOrderService = {
   },
 
   /**
-   * Create a new ORDER LEAD.
-   * Status = lead_created. Commission = none. Revenue = 0.
-   * Commission is NOT counted until admin confirms the order.
+   * Create an order record when customer initiates WhatsApp purchase flow.
+   * Default status: Confirmed.
    */
   async createOrder(input: CreateOrderInput): Promise<Order> {
-    const row = {
+    const commissionRate = input.commissionRate ?? input.commissionPercentage ?? (await this.getCommissionPercentage())
+    const sellingPrice = input.sellingPrice ?? input.productPrice
+    const status: OrderStatus = input.status || 'Confirmed'
+    const commissionAmount = status === 'Cancelled' ? 0 : Math.round(sellingPrice * (commissionRate / 100))
+    const sellerEarnings = sellingPrice - commissionAmount
+
+    const row: Record<string, unknown> = {
       product_id: input.productId,
       product_name: input.productName,
-      product_price: input.productPrice,
-      commission_percentage: input.commissionPercentage,
-      commission_amount: input.commissionAmount,
-      seller_earnings: input.sellerEarnings,
+      product_price: sellingPrice,
+      selling_price: sellingPrice,
+      commission_rate: commissionRate,
+      commission_percentage: commissionRate,
+      commission_amount: commissionAmount,
+      seller_earnings: sellerEarnings,
       customer_name: input.customerName || 'WhatsApp Customer',
       customer_phone: input.customerPhone || '',
       customer_email: input.customerEmail || null,
@@ -178,36 +201,48 @@ export const supabaseOrderService = {
       selected_size: input.selectedSize || null,
       product_url: input.productUrl || null,
       customer_details: input.customerDetails || {},
-      order_status: 'lead_created',
-      commission_status: 'none',  // Commission NOT counted yet
-      payment_status: 'pending',
-      total_amount: input.productPrice,
+      order_status: status,
+      commission_status: status === 'Completed' ? 'earned' : status === 'Cancelled' ? 'cancelled' : 'pending',
+      payment_status: status === 'Paid' || status === 'Completed' ? 'paid' : 'pending',
+      total_amount: sellingPrice,
       whatsapp_message_sent: true,
       whatsapp_message_at: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase.from('orders').insert(row).select().single()
-    if (error) throw error
+    if (input.orderId) {
+      row.order_id = input.orderId
+      row.order_number = input.orderId
+    }
 
-    // Create initial timeline entry for the lead
-    try {
-      await supabase.from('order_timeline').insert({
-        order_id: data.id,
-        status: 'lead_created',
-        changed_by: 'Customer (WhatsApp)',
-        note: 'Order lead created when customer clicked Buy',
-      })
-    } catch {
-      // Timeline insert failure should not block order creation
+    const { data, error } = await supabase.from('orders').insert(row).select().single()
+    if (error) {
+      console.warn('Supabase order creation returned error, falling back to returned object:', error)
+      const fallbackId = input.orderId || `HOK-${Math.floor(1040 + Math.random() * 9000)}`
+      return {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        orderId: fallbackId,
+        orderNumber: fallbackId,
+        productId: input.productId,
+        productName: input.productName,
+        sellingPrice,
+        productPrice: sellingPrice,
+        commissionRate,
+        commissionPercentage: commissionRate,
+        commissionAmount,
+        sellerEarnings,
+        customerName: input.customerName || 'WhatsApp Customer',
+        customerPhone: input.customerPhone || '',
+        status,
+        commissionStatus: 'pending',
+        paymentStatus: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
     }
 
     return rowToOrder(data)
   },
 
-  /**
-   * Fetch orders (admin panel) with cursor-based keyset pagination.
-   * Supports tab filters and optional server-side search.
-   */
   async getOrders(params?: GetOrdersParams | boolean, limit?: number, cursor?: PaginationCursor | null): Promise<Order[]> {
     const opts: GetOrdersParams =
       typeof params === 'boolean'
@@ -222,23 +257,18 @@ export const supabaseOrderService = {
       } else if (!opts.includeArchived) {
         query = query.neq('order_status', 'archived')
       }
-    } else if (opts.tab === 'followup') {
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      query = query
-        .eq('order_status', 'lead_created')
-        .lte('created_at', cutoff)
     } else {
       query = query.neq('order_status', 'archived')
     }
 
     if (opts.status) {
-      query = query.eq('order_status', opts.status)
+      query = query.or(`order_status.eq.${opts.status},order_status.eq.${opts.status.toLowerCase()}`)
     }
 
     const search = opts.search?.trim()
     if (search) {
       query = query.or(
-        `product_name.ilike.%${search}%,customer_name.ilike.%${search}%,order_number.ilike.%${search}%,id.ilike.%${search}%`
+        `product_name.ilike.%${search}%,customer_name.ilike.%${search}%,order_number.ilike.%${search}%,order_id.ilike.%${search}%,id.ilike.%${search}%`
       )
     }
 
@@ -256,20 +286,28 @@ export const supabaseOrderService = {
   },
 
   /**
-   * Update order status — handles the FULL commission lifecycle.
-   *
-   * confirmed  → commission_status = pending  (create seller_payout)
-   * delivered  → commission_status = earned
-   * cancelled  → commission_status = cancelled (remove from revenue)
-   * rejected   → commission_status = rejected  (remove from revenue)
-   * others     → commission_status = none (lead_created, customer_contacted)
-   *            or pending (packed, shipped)
+   * Update order status.
+   * Confirmed = customer confirmed order.
+   * Paid = payment received.
+   * Completed = order completed.
+   * Cancelled = order cancelled (commission = ₹0).
    */
   async updateOrderStatus(id: string, status: OrderStatus, adminNote?: string): Promise<void> {
+    // Fetch existing order details to recalculate commission
+    const { data: existing } = await supabase.from('orders').select('*').eq('id', id).maybeSingle()
+    const sellingPrice = Number(existing?.selling_price ?? existing?.product_price ?? existing?.total_amount ?? 0)
+    const commissionRate = Number(existing?.commission_rate ?? existing?.commission_percentage ?? 10)
+
+    const isCancelled = status === 'Cancelled' || String(status).toLowerCase() === 'cancelled'
+    const commissionAmount = isCancelled ? 0 : Math.round(sellingPrice * (commissionRate / 100))
+    const sellerEarnings = sellingPrice - commissionAmount
+
     const commissionStatus = deriveCommissionStatus(status)
 
     const updateData: Record<string, unknown> = {
       order_status: status,
+      commission_amount: commissionAmount,
+      seller_earnings: sellerEarnings,
       commission_status: commissionStatus,
       updated_at: new Date().toISOString(),
     }
@@ -294,43 +332,7 @@ export const supabaseOrderService = {
         note: adminNote || null,
       })
     } catch {
-      // Timeline insert failure should not block status update
-    }
-
-    // Manage seller_payouts based on commission lifecycle
-    if (status === 'confirmed') {
-      // Order confirmed — create or update seller_payout as pending
-      try {
-        // Fetch the order to get amounts
-        const { data: orderRow } = await supabase
-          .from('orders')
-          .select('product_id, product_name, seller_earnings, commission_amount, commission_percentage')
-          .eq('id', id)
-          .single()
-
-        if (orderRow) {
-          // Upsert seller_payout: delete existing then insert fresh to avoid duplicates
-          await supabase.from('seller_payouts').delete().eq('order_id', id)
-          await supabase.from('seller_payouts').insert({
-            order_id: id,
-            product_id: orderRow.product_id,
-            product_name: orderRow.product_name,
-            seller_amount: orderRow.seller_earnings,
-            commission_amount: orderRow.commission_amount,
-            commission_percentage: orderRow.commission_percentage,
-            payment_status: 'pending',
-          })
-        }
-      } catch {
-        // seller_payouts sync is best-effort
-      }
-    } else if (status === 'cancelled' || status === 'rejected') {
-      // Remove seller_payout entry — commission is cancelled
-      try {
-        await supabase.from('seller_payouts').delete().eq('order_id', id)
-      } catch {
-        // Best-effort
-      }
+      // Best effort
     }
   },
 
@@ -653,6 +655,129 @@ export const supabaseOrderService = {
       await supabase.from('order_timeline').delete().in('order_id', ids)
     } catch {}
     const { error } = await supabase.from('orders').delete().in('id', ids)
+    if (error) throw error
+  },
+
+  /**
+   * Calculate monthly commission dashboard metrics for owner:
+   * - Confirmed sales: total value of orders with status Confirmed, Paid, or Completed
+   * - Completed sales: total value of Completed orders
+   * - Your commission: commission generated from Completed orders
+   * - Paid to you: amount of commission manually marked as already paid to owner
+   * - Remaining: Your commission - Paid to you
+   */
+  async getCommissionDashboard(year?: number, month?: number): Promise<{
+    monthYearLabel: string
+    confirmedSales: number
+    completedSales: number
+    yourCommission: number
+    paidToYou: number
+    remaining: number
+  }> {
+    const currentDate = new Date()
+    const targetYear = year ?? currentDate.getFullYear()
+    const targetMonth = month ?? (currentDate.getMonth() + 1)
+
+    const dateObj = new Date(targetYear, targetMonth - 1, 1)
+    const monthYearLabel = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+
+    const startDate = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0).toISOString()
+    const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999).toISOString()
+
+    const { data: ordersData } = await supabase
+      .from('orders')
+      .select('*')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate)
+
+    const orders = ordersData ? ordersData.map(rowToOrder) : []
+
+    let confirmedSales = 0
+    let completedSales = 0
+    let yourCommission = 0
+
+    for (const o of orders) {
+      const s = String(o.status).toLowerCase()
+      if (['confirmed', 'paid', 'completed'].includes(s)) {
+        confirmedSales += o.sellingPrice
+      }
+      if (s === 'completed') {
+        completedSales += o.sellingPrice
+        yourCommission += o.commissionAmount
+      }
+    }
+
+    const { data: paymentsData } = await supabase
+      .from('commission_payments')
+      .select('amount, payment_date')
+
+    let paidToYou = 0
+    if (paymentsData) {
+      for (const p of paymentsData) {
+        paidToYou += Number(p.amount || 0)
+      }
+    }
+
+    const remaining = yourCommission - paidToYou
+
+    return {
+      monthYearLabel,
+      confirmedSales,
+      completedSales,
+      yourCommission,
+      paidToYou,
+      remaining,
+    }
+  },
+
+  async getCommissionPayments(): Promise<Array<{
+    id: string
+    amount: number
+    paymentDate: string
+    notes?: string
+    createdAt: string
+  }>> {
+    const { data, error } = await supabase
+      .from('commission_payments')
+      .select('*')
+      .order('payment_date', { ascending: false })
+
+    if (error || !data) return []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.map((r: any) => ({
+      id: r.id,
+      amount: Number(r.amount),
+      paymentDate: r.payment_date || r.created_at,
+      notes: r.notes || '',
+      createdAt: r.created_at,
+    }))
+  },
+
+  async addCommissionPayment(amount: number, notes?: string, paymentDate?: string): Promise<{
+    id: string
+    amount: number
+    paymentDate: string
+    notes?: string
+    createdAt: string
+  }> {
+    const row = {
+      amount,
+      notes: notes || '',
+      payment_date: paymentDate || new Date().toISOString(),
+    }
+    const { data, error } = await supabase.from('commission_payments').insert(row).select().single()
+    if (error) throw error
+    return {
+      id: data.id,
+      amount: Number(data.amount),
+      paymentDate: data.payment_date,
+      notes: data.notes,
+      createdAt: data.created_at,
+    }
+  },
+
+  async deleteCommissionPayment(id: string): Promise<void> {
+    const { error } = await supabase.from('commission_payments').delete().eq('id', id)
     if (error) throw error
   },
 }
