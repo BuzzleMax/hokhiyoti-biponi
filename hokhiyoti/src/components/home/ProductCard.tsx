@@ -48,7 +48,7 @@ const ProductCard = memo(function ProductCard({ product }: { product: Product })
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
       transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-      className="group flex flex-col bg-[#FFFFFF] rounded-xl overflow-hidden shadow-elevated border border-[rgba(0,0,0,0.04)]"
+      className="group flex flex-col bg-[#FFFFFF] rounded-xl overflow-hidden shadow-elevated border border-[rgba(0,0,0,0.04)] h-full"
     >
       {/* Image Container */}
       <Link to={targetPath} className="relative block aspect-[4/5] w-full overflow-hidden bg-[#FAF9F6]">
@@ -84,43 +84,51 @@ const ProductCard = memo(function ProductCard({ product }: { product: Product })
           )}
         </div>
         {product.category?.name && (
-          <div className="absolute top-4 left-4 bg-[#0a0a0a] text-[#FAF9F6] font-sans text-[9px] tracking-[0.15em] font-medium py-1.5 px-4 rounded-lg z-10">
+          <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 bg-[#0a0a0a] text-[#FAF9F6] font-sans text-[8px] sm:text-[9px] tracking-[0.15em] font-medium py-1 px-2.5 sm:py-1.5 sm:px-4 rounded-lg z-10">
             {product.category.name.toUpperCase()}
           </div>
         )}
         {product.availabilityStatus === 'out_of_stock' && (
-          <div className="absolute top-4 right-4 bg-[#8B3A3A] text-white font-sans text-[9px] font-bold tracking-[0.15em] uppercase py-1.5 px-3 rounded-lg z-10">
+          <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-[#8B3A3A] text-white font-sans text-[8px] sm:text-[9px] font-bold tracking-[0.15em] uppercase py-1 px-2.5 sm:py-1.5 sm:px-3 rounded-lg z-10">
             OUT OF STOCK
           </div>
         )}
         {product.availabilityStatus === 'low_stock' && (
-          <div className="absolute top-4 right-4 bg-[#B08D57] text-white font-sans text-[9px] font-bold tracking-[0.15em] uppercase py-1.5 px-3 rounded-lg z-10">
+          <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-[#B08D57] text-white font-sans text-[8px] sm:text-[9px] font-bold tracking-[0.15em] uppercase py-1 px-2.5 sm:py-1.5 sm:px-3 rounded-lg z-10">
             ONLY {product.stockQuantity} LEFT
           </div>
         )}
       </Link>
 
       {/* Product Info */}
-      <div className="p-7 flex flex-col flex-1 bg-white">
-        <div className="flex flex-col gap-2 mb-5">
+      <div className="p-3.5 sm:p-5 md:p-6 lg:p-7 flex flex-col flex-1 bg-white">
+        <div className="flex flex-col gap-1.5 sm:gap-2 mb-3 sm:mb-4">
           <Link to={targetPath} className="hover:text-[#B08D57] transition-colors duration-400">
-            <h3 className="font-heading text-lg font-medium text-[#0a0a0a] leading-tight">{product.name}</h3>
+            <h3 className="font-heading text-sm sm:text-base md:text-lg font-medium text-[#0a0a0a] leading-tight line-clamp-1">
+              {product.name}
+            </h3>
           </Link>
-          <p className="font-sans text-xs text-[#8a8a8a] line-clamp-1 leading-normal font-light">{product.description}</p>
+          <p className="font-sans text-[11px] sm:text-xs text-[#8a8a8a] line-clamp-1 leading-normal font-light">
+            {product.description}
+          </p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-5 border-t border-[rgba(0,0,0,0.04)]">
-          <div className="flex items-baseline gap-2">
-            <span className="font-sans text-sm font-semibold text-[#0a0a0a]">{formatPriceINR(product.price)}</span>
+        <div className="mt-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 sm:pt-4 md:pt-5 border-t border-[rgba(0,0,0,0.04)]">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="font-sans text-xs sm:text-sm font-semibold text-[#0a0a0a]">
+              {formatPriceINR(product.price)}
+            </span>
             {product.comparePrice && product.comparePrice > product.price && (
-              <span className="font-sans text-xs text-[#8a8a8a] line-through">{formatPriceINR(product.comparePrice)}</span>
+              <span className="font-sans text-[10px] sm:text-xs text-[#8a8a8a] line-through">
+                {formatPriceINR(product.comparePrice)}
+              </span>
             )}
           </div>
 
-          <div className="inline-flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             <Link
               to={targetPath}
-              className="inline-flex h-10 px-5 rounded-lg border border-[#0a0a0a] text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-[#FAF9F6] transition-colors duration-400 font-sans text-[10px] font-semibold tracking-[0.15em] items-center"
+              className="inline-flex h-8 sm:h-9 md:h-10 px-2 sm:px-4 md:px-5 rounded-lg border border-[#0a0a0a] text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-[#FAF9F6] transition-colors duration-400 font-sans text-[9px] sm:text-[10px] font-semibold tracking-wider sm:tracking-[0.15em] items-center justify-center text-center"
             >
               DETAILS
             </Link>
@@ -129,7 +137,7 @@ const ProductCard = memo(function ProductCard({ product }: { product: Product })
               target="_blank"
               rel="noreferrer"
               onClick={handleBuyClick}
-              className="inline-flex h-10 px-5 rounded-lg bg-[#0a0a0a] text-[#FAF9F6] hover:bg-[#B08D57] transition-colors duration-400 font-sans text-[10px] font-semibold tracking-[0.15em] items-center"
+              className="inline-flex h-8 sm:h-9 md:h-10 px-2 sm:px-4 md:px-5 rounded-lg bg-[#0a0a0a] text-[#FAF9F6] hover:bg-[#B08D57] transition-colors duration-400 font-sans text-[9px] sm:text-[10px] font-semibold tracking-wider sm:tracking-[0.15em] items-center justify-center text-center truncate"
               aria-label={`Buy ${product.name} on WhatsApp`}
             >
               BUY NOW

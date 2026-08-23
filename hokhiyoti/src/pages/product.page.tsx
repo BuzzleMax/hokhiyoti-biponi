@@ -6,14 +6,12 @@ import { supabaseOrderService } from '../services/supabase/order.service'
 import type { Product } from '../types/product.types'
 import { formatPriceINR, getWhatsAppProductUrl, calculateCommission } from '../lib/utils'
 import { useSEO } from '../hooks/useSEO'
-import { useRecentlyViewed } from '../hooks/useRecentlyViewed'
 
 import ProductGallery from '../components/product/ProductGallery'
 import ProductHighlights from '../components/product/ProductHighlights'
 import ProductTabs from '../components/product/ProductTabs'
 import ProductReviewsSection from '../components/product/ProductReviewsSection'
 import ExploreMoreSection from '../components/product/ExploreMoreSection'
-import RecentlyViewedSection from '../components/product/RecentlyViewedSection'
 
 export default function ProductPage() {
   const { id } = useParams() as { id?: string }
@@ -23,8 +21,6 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
   const [copiedLink, setCopiedLink] = useState(false)
-
-  const { recentlyViewed, addRecentlyViewed } = useRecentlyViewed()
 
   useEffect(() => {
     if (!id) return
@@ -43,7 +39,6 @@ export default function ProductPage() {
           if (found.colours && found.colours.length > 0 && found.colours[0]) {
             setSelectedColor(found.colours[0].name)
           }
-          addRecentlyViewed(found)
         }
         setLoading(false)
       })
@@ -350,7 +345,6 @@ export default function ProductPage() {
       <ProductTabs product={product} />
       <ProductReviewsSection productId={product.id} productName={product.name} />
       <ExploreMoreSection currentProduct={product} />
-      <RecentlyViewedSection products={recentlyViewed} currentProductId={product.id} />
     </div>
   )
 }

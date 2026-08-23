@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ProductCard from '../home/ProductCard'
 import { supabaseProductService } from '../../services/supabase/product.service'
 import type { Product } from '../../types/product.types'
@@ -7,8 +8,108 @@ interface ExploreMoreSectionProps {
   currentProduct: Product
 }
 
+/**
+ * Reusable function to distribute valid products into logical rows.
+ * Defaults to chunking by 6 products per row as per e-commerce discovery patterns.
+ */
+export function distributeProductsIntoRows(products: Product[], chunkSize = 6): Product[][] {
+  if (!products || products.length === 0) return []
+  const rows: Product[][] = []
+  for (let i = 0; i < products.length; i += chunkSize) {
+    rows.push(products.slice(i, i + chunkSize))
+  }
+  return rows
+}
+
+interface ExploreMoreRowProps {
+  products: Product[]
+  rowIndex: number
+}
+
+function ExploreMoreRow({ products, rowIndex }: ExploreMoreRowProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const { scrollLeft, scrollWidth, clientWidth } = el
+    setCanScrollLeft(scrollLeft > 4)
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    checkScroll()
+
+    const handleResize = () => checkScroll()
+    window.addEventListener('resize', handleResize)
+    el.addEventListener('scroll', checkScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      el.removeEventListener('scroll', checkScroll)
+    }
+  }, [checkScroll, products])
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current
+    if (!el) return
+    const scrollAmount = el.clientWidth * 0.75
+    el.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
+
+  return (
+    <div className="relative group/row">
+      {/* Desktop Left Navigation Arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={() => handleScroll('left')}
+          className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 border border-black/10 shadow-lg text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-white items-center justify-center transition-all duration-300 backdrop-blur-sm opacity-0 group-hover/row:opacity-100 hover:scale-110"
+          aria-label={`Scroll row ${rowIndex + 1} left`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Desktop Right Navigation Arrow */}
+      {canScrollRight && (
+        <button
+          onClick={() => handleScroll('right')}
+          className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 border border-black/10 shadow-lg text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-white items-center justify-center transition-all duration-300 backdrop-blur-sm opacity-0 group-hover/row:opacity-100 hover:scale-110"
+          aria-label={`Scroll row ${rowIndex + 1} right`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Independently Scrollable Horizontal Track */}
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex gap-3 sm:gap-4 md:gap-5 overflow-x-auto scroll-smooth scrollbar-none py-2 px-1 snap-x snap-mandatory"
+      >
+        {products.map((product) => (
+          <div
+            key={product.id}
+            className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(33.333%-11px)] md:w-[calc(25%-15px)] lg:w-[calc(20%-16px)] xl:w-[calc(16.666%-17px)] snap-start"
+          >
+            <ProductCard product={product} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectionProps) {
-  const [products, setProducts] = useState<Product[]>([])
+  const [productRows, setProductRows] = useState<Product[][]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,15 +120,18 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
         const categorySlug = currentProduct.category?.slug
         const collectionSlug = currentProduct.collection?.slug
 
-        // Fetch candidate lists in parallel using existing Supabase service methods
+        // Fetch candidate products from Supabase using existing service methods
         const [sameCategoryProds, sameCollectionProds, generalProds] = await Promise.all([
-          categorySlug ? supabaseProductService.getProductsByCategory(categorySlug, 12) : Promise.resolve([]),
-          collectionSlug ? supabaseProductService.getProductsByCollection(collectionSlug, 12) : Promise.resolve([]),
-          supabaseProductService.getProducts({ includeInactive: false, limit: 16 }),
+          categorySlug ? supabaseProductService.getProductsByCategory(categorySlug, 24) : Promise.resolve([]),
+          collectionSlug ? supabaseProductService.getProductsByCollection(collectionSlug, 24) : Promise.resolve([]),
+          supabaseProductService.getProducts({ includeInactive: false, limit: 48 }),
         ])
 
         const seenIds = new Set<string>()
+
         const isExcluded = (p: Product) =>
+          !p ||
+          !p.id ||
           p.id === currentProduct.id ||
           p.slug === currentProduct.slug ||
           p.active === false ||
@@ -36,7 +140,7 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
 
         const result: Product[] = []
 
-        // Priority 1: Products from same collection & category
+        // Priority 1: Products matching both category and collection
         if (collectionSlug && categorySlug) {
           for (const p of sameCollectionProds) {
             if (!isExcluded(p) && !seenIds.has(p.id) && p.category?.slug === categorySlug) {
@@ -46,7 +150,7 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
           }
         }
 
-        // Priority 2: Other products from same category or collection
+        // Priority 2: Products from same category or collection
         for (const p of [...sameCategoryProds, ...sameCollectionProds]) {
           if (!isExcluded(p) && !seenIds.has(p.id)) {
             seenIds.add(p.id)
@@ -54,25 +158,25 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
           }
         }
 
-        // Priority 3: Other active published products if not enough
+        // Priority 3: Other valid published products to fill recommendation slots up to 30 items
         for (const p of generalProds) {
-          if (result.length >= 8) break
+          if (result.length >= 30) break
           if (!isExcluded(p) && !seenIds.has(p.id)) {
             seenIds.add(p.id)
             result.push(p)
           }
         }
 
-        const finalProducts = result.slice(0, 8)
+        const rows = distributeProductsIntoRows(result, 6)
 
         if (active) {
-          setProducts(finalProducts)
+          setProductRows(rows)
           setLoading(false)
         }
       } catch (err) {
         console.warn('Failed to load Explore More products:', err)
         if (active) {
-          setProducts([])
+          setProductRows([])
           setLoading(false)
         }
       }
@@ -88,22 +192,22 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
   if (loading) {
     return (
       <div className="pt-16 border-t border-[rgba(0,0,0,0.06)] space-y-6 animate-pulse">
-        <div className="h-4 w-36 bg-gray-200 rounded" />
+        <div className="h-4 w-44 bg-gray-200 rounded" />
         <div className="h-8 w-64 bg-gray-200 rounded" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="aspect-[4/5] bg-gray-200 rounded-xl" />
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="flex-shrink-0 w-[calc(50%-6px)] sm:w-[calc(25%-12px)] aspect-[4/5] bg-gray-200 rounded-xl" />
           ))}
         </div>
       </div>
     )
   }
 
-  if (products.length === 0) return null
+  if (productRows.length === 0) return null
 
   return (
     <section className="pt-16 border-t border-[rgba(0,0,0,0.06)] space-y-8 select-none">
-      {/* Header */}
+      {/* Clean Heading & Subtitle */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="font-sans text-[11px] font-semibold tracking-[0.25em] text-[#B08D57] uppercase block mb-1">
@@ -118,10 +222,10 @@ export default function ExploreMoreSection({ currentProduct }: ExploreMoreSectio
         </p>
       </div>
 
-      {/* Grid for Desktop / Responsive Horizontal Scroll for Mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 overflow-x-auto pb-4 scrollbar-none">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+      {/* Multi-Row Recommendation Rows */}
+      <div className="space-y-6 md:space-y-10">
+        {productRows.map((rowProducts, rowIndex) => (
+          <ExploreMoreRow key={`explore-row-${rowIndex}`} products={rowProducts} rowIndex={rowIndex} />
         ))}
       </div>
     </section>
