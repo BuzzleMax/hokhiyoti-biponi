@@ -185,10 +185,11 @@ export const supabaseProductService = {
   `,
 
   listSelectQuery: `
-    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, fabric, colors, sizes, highlights, images, enable_sizes,
+    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, fabric, colors, sizes, highlights, images, videos, enable_sizes,
     categories (id, slug, name),
     collections (id, slug, name),
     product_images (id, image_url, alt_text, sort_order, is_cover),
+    product_videos (id, video_url, thumbnail_url, alt_text, sort_order, is_cover),
     product_colours (id, colour_name, hex_code, image_id),
     product_sizes (id, size, stock_quantity)
   `,

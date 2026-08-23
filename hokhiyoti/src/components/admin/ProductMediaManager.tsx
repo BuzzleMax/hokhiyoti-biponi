@@ -19,11 +19,47 @@ interface ProductMediaManagerProps {
   onChange: (updatedMedia: ManagedMedia[]) => void
 }
 
+function getMediaFileName(item: ManagedMedia): string {
+  if (item.alt && !item.alt.toLowerCase().includes('product') && item.alt.includes('.')) {
+    return item.alt
+  }
+  try {
+    const urlObj = new URL(item.url)
+    const pathSegments = urlObj.pathname.split('/')
+    const lastSegment = pathSegments[pathSegments.length - 1]
+    if (lastSegment) {
+      return decodeURIComponent(lastSegment)
+    }
+  } catch {
+    const parts = item.url.split('/')
+    const lastPart = parts[parts.length - 1]
+    if (lastPart) {
+      const fileName = lastPart.split('?')[0]
+      if (fileName) return fileName
+    }
+  }
+  return item.type === 'image' ? 'Image File' : 'Video File'
+}
+
+function formatMediaCount(imageCount: number, videoCount: number): string {
+  const total = imageCount + videoCount
+  if (total === 0) return '0 media items'
+
+  const parts: string[] = []
+  if (imageCount > 0) parts.push(`${imageCount} ${imageCount === 1 ? 'image' : 'images'}`)
+  if (videoCount > 0) parts.push(`${videoCount} ${videoCount === 1 ? 'video' : 'videos'}`)
+
+  return `${total} ${total === 1 ? 'media item' : 'media items'} — ${parts.join(', ')}`
+}
+
 export default function ProductMediaManager({ media, onChange }: ProductMediaManagerProps) {
   const [uploading, setUploading] = useState(false)
   const [selectedIndices, setSelectedIndices] = useState<number[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const imageCount = media.filter((m) => m.type === 'image').length
+  const videoCount = media.filter((m) => m.type === 'video').length
 
   const handleFileUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files)
@@ -164,8 +200,8 @@ export default function ProductMediaManager({ media, onChange }: ProductMediaMan
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/5 pb-3">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-[#111111]">Product Media Manager</span>
-          <span className="text-[11px] text-gray-500 font-light">
-            ({media.length} items: {media.filter((m) => m.type === 'image').length} images, {media.filter((m) => m.type === 'video').length} videos)
+          <span className="text-[11px] text-gray-600 font-medium">
+            ({formatMediaCount(imageCount, videoCount)})
           </span>
         </div>
 
@@ -292,6 +328,11 @@ export default function ProductMediaManager({ media, onChange }: ProductMediaMan
                       <Square className="w-4 h-4 text-gray-400" />
                     )}
                   </button>
+                </div>
+
+                {/* Filename / Identifier Badge */}
+                <div className="px-2 py-1 bg-gray-50 border-t border-black/5 text-[10px] text-gray-500 font-mono truncate" title={getMediaFileName(item)}>
+                  {getMediaFileName(item)}
                 </div>
 
                 {/* Control Actions Bar */}

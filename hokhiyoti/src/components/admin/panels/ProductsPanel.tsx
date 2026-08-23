@@ -6,7 +6,19 @@ import type { Product } from '../../../types/product.types'
 import type { Category } from '../../../types/category.types'
 import type { Collection } from '../../../types/collection.types'
 import ProductMediaManager, { type ManagedMedia } from '../ProductMediaManager'
+import VideoThumbnail from '../../common/VideoThumbnail'
 import { Search, Plus, Eye, EyeOff, Copy, Trash2, XCircle } from 'lucide-react'
+
+export function formatMediaCount(imageCount: number, videoCount: number): string {
+  const total = imageCount + videoCount
+  if (total === 0) return '0 media items'
+
+  const parts: string[] = []
+  if (imageCount > 0) parts.push(`${imageCount} ${imageCount === 1 ? 'image' : 'images'}`)
+  if (videoCount > 0) parts.push(`${videoCount} ${videoCount === 1 ? 'video' : 'videos'}`)
+
+  return `${total} ${total === 1 ? 'media item' : 'media items'} — ${parts.join(', ')}`
+}
 
 export default function ProductsPanel() {
   const [products, setProducts] = useState<Product[]>([])
@@ -358,9 +370,13 @@ export default function ProductsPanel() {
                       <div className="flex items-center gap-3">
                         {p.images[0]?.url ? (
                           <img src={p.images[0].url} alt={p.name} className="w-10 h-12 object-cover rounded-lg border" />
+                        ) : p.videos[0]?.url ? (
+                          <div className="w-10 h-12 rounded-lg border overflow-hidden">
+                            <VideoThumbnail videoUrl={p.videos[0].url} thumbnailUrl={p.videos[0].thumbnailUrl} alt={p.name} playIconSize="sm" showPlayIcon={false} />
+                          </div>
                         ) : (
-                          <div className="w-10 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-                            No Img
+                          <div className="w-10 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-[10px]">
+                            No Media
                           </div>
                         )}
                         <div>
@@ -378,8 +394,8 @@ export default function ProductsPanel() {
                         {p.stockQuantity} in stock
                       </span>
                     </td>
-                    <td className="p-3 text-gray-500">
-                      {p.images.length} images, {p.videos.length} vids
+                    <td className="p-3 text-gray-700 font-medium">
+                      {formatMediaCount(p.images.length, p.videos.length)}
                     </td>
                     <td className="p-3">
                       <button
