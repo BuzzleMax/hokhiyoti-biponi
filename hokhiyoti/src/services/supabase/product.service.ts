@@ -18,7 +18,7 @@ import type {
  * Utility to map a Supabase product database record and its sub-tables to the Product TypeScript object.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToProduct(row: any): Product {
+export function rowToProduct(row: any): Product {
   const category: CategoryRef | undefined =
     row.category_slug && row.category_name
       ? { id: row.category_id || '', slug: row.category_slug, name: row.category_name }

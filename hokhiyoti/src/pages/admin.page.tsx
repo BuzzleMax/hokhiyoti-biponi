@@ -14,7 +14,9 @@ import {
   DollarSign,
   Percent,
   BarChart3,
+  Play,
 } from 'lucide-react'
+
 
 type AdminTab =
   | 'analytics'
@@ -25,6 +27,8 @@ type AdminTab =
   | 'reviews'
   | 'categories'
   | 'collections'
+  | 'watch-buy'
+
 
 // Lazy-load panels for modular code-splitting
 const AnalyticsPanel = lazy(() => import('../components/admin/panels/AnalyticsPanel'))
@@ -35,6 +39,8 @@ const MarketplaceSettingsPanel = lazy(() => import('../components/admin/panels/M
 const ReviewsPanel = lazy(() => import('../components/admin/panels/ReviewsPanel'))
 const CategoriesPanel = lazy(() => import('../components/admin/panels/CategoriesPanel'))
 const CollectionsPanel = lazy(() => import('../components/admin/panels/CollectionsPanel'))
+const WatchBuyPanel = lazy(() => import('../components/admin/panels/WatchBuyPanel'))
+
 
 function TabPanelSkeleton() {
   return (
@@ -90,6 +96,8 @@ export default function AdminPage() {
               { id: 'reviews', label: 'Reviews', icon: Star },
               { id: 'categories', label: 'Categories', icon: FolderTree },
               { id: 'collections', label: 'Collections', icon: Layers },
+              { id: 'watch-buy', label: 'Watch & Buy', icon: Play },
+
             ].map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -122,6 +130,8 @@ export default function AdminPage() {
                 {activeTab === 'reviews' && <ReviewsPanel />}
                 {activeTab === 'categories' && <CategoriesPanel />}
                 {activeTab === 'collections' && <CollectionsPanel />}
+                {activeTab === 'watch-buy' && <WatchBuyPanel />}
+
               </Suspense>
             </ErrorBoundary>
           </div>

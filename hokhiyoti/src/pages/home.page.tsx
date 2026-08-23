@@ -10,7 +10,9 @@ import {
   StoryBanner,
   Testimonials,
   InstagramStyleGallery,
+  WatchBuySection,
 } from '../components/home/sections'
+
 
 export default function HomePage() {
   return (
@@ -18,6 +20,7 @@ export default function HomePage() {
       <LuxuryHero />
       <FeaturedCollection />
       <FeaturedProducts />
+      <WatchBuySection />
       <NewArrivals />
       <BestSellers />
       <PremiumCollection />
