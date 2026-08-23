@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { Upload, Trash2, ArrowUp, ArrowDown, Star, Film, Image as ImageIcon, CheckSquare, Square, RefreshCw } from 'lucide-react'
 import { supabaseProductService } from '../../services/supabase/product.service'
+import { captureVideoFrame } from '../../lib/media.utils'
+import VideoThumbnail from '../common/VideoThumbnail'
 
 export type ManagedMedia = {
   id?: string
@@ -43,9 +45,21 @@ export default function ProductMediaManager({ media, onChange }: ProductMediaMan
           })
         } else if (file.type.startsWith('video/')) {
           const url = await supabaseProductService.uploadProductVideo(file)
+          let thumbnailUrl: string | undefined = undefined
+          try {
+            const thumbBlob = await captureVideoFrame(file)
+            if (thumbBlob) {
+              const thumbFile = new File([thumbBlob], `thumb_${Date.now()}.jpg`, { type: 'image/jpeg' })
+              thumbnailUrl = await supabaseProductService.uploadProductImage(thumbFile)
+            }
+          } catch (thumbErr) {
+            console.warn('Could not generate automatic video thumbnail:', thumbErr)
+          }
+
           newItems.push({
             type: 'video',
             url,
+            thumbnailUrl,
             alt: file.name,
             isCover: false,
             sortOrder: media.length + newItems.length,
@@ -250,7 +264,7 @@ export default function ProductMediaManager({ media, onChange }: ProductMediaMan
                   {item.type === 'image' ? (
                     <img src={item.url} alt={item.alt || 'Media item'} className="w-full h-full object-cover" />
                   ) : (
-                    <video src={item.url} className="w-full h-full object-cover" poster={item.thumbnailUrl} />
+                    <VideoThumbnail videoUrl={item.url} thumbnailUrl={item.thumbnailUrl} alt={item.alt || 'Video item'} playIconSize="sm" />
                   )}
 
                   {/* Type Badge */}

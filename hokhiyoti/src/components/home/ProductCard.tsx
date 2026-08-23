@@ -4,8 +4,11 @@ import { Link } from 'wouter'
 import type { Product } from '../../types/product.types'
 import { formatPriceINR, getWhatsAppProductUrl, calculateCommission } from '../../lib/utils'
 import { supabaseOrderService } from '../../services/supabase/order.service'
+import { getProductPrimaryMedia } from '../../lib/media.utils'
+import VideoThumbnail from '../common/VideoThumbnail'
 
 const ProductCard = memo(function ProductCard({ product }: { product: Product }) {
+  const primaryMedia = getProductPrimaryMedia(product)
   const img = product.images?.[0]
   const hoverImg = product.images?.[1] || img
   const targetPath = `/product/${product.id}`
@@ -50,7 +53,14 @@ const ProductCard = memo(function ProductCard({ product }: { product: Product })
       {/* Image Container */}
       <Link to={targetPath} className="relative block aspect-[4/5] w-full overflow-hidden bg-[#FAF9F6]">
         <div className="relative aspect-[4/5] bg-[#FAF9F6]">
-          {img ? (
+          {primaryMedia.type === 'video' ? (
+            <VideoThumbnail
+              videoUrl={primaryMedia.url}
+              thumbnailUrl={primaryMedia.thumbnailUrl}
+              alt={primaryMedia.alt}
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            />
+          ) : img ? (
             <>
               <img
                 src={img.url}

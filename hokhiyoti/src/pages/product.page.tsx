@@ -12,7 +12,7 @@ import ProductGallery from '../components/product/ProductGallery'
 import ProductHighlights from '../components/product/ProductHighlights'
 import ProductTabs from '../components/product/ProductTabs'
 import ProductReviewsSection from '../components/product/ProductReviewsSection'
-import RelatedProducts from '../components/product/RelatedProducts'
+import ExploreMoreSection from '../components/product/ExploreMoreSection'
 import RecentlyViewedSection from '../components/product/RecentlyViewedSection'
 
 export default function ProductPage() {
@@ -349,11 +349,7 @@ export default function ProductPage() {
 
       <ProductTabs product={product} />
       <ProductReviewsSection productId={product.id} productName={product.name} />
-      <RelatedProducts
-        currentProductId={product.id}
-        categorySlug={product.category?.slug}
-        collectionSlug={product.collection?.slug}
-      />
+      <ExploreMoreSection currentProduct={product} />
       <RecentlyViewedSection products={recentlyViewed} currentProductId={product.id} />
     </div>
   )

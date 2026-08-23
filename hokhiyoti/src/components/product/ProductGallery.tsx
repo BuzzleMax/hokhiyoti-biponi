@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { ZoomIn, ChevronLeft, ChevronRight, X, Play, Video as VideoIcon } from 'lucide-react'
+import { ZoomIn, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { ProductImage, ProductVideo } from '../../types/product.types'
+import VideoThumbnail from '../common/VideoThumbnail'
 
 interface ProductGalleryProps {
   images?: ProductImage[]
@@ -148,23 +149,12 @@ export default function ProductGallery({ images = [], videos = [], productName }
                 onClick={() => setIsPlaying(true)}
                 className="absolute inset-0 flex items-center justify-center cursor-pointer select-none"
               >
-                {activeMedia.thumbnailUrl ? (
-                  <img
-                    src={activeMedia.thumbnailUrl}
-                    alt={activeMedia.alt || productName}
-                    className="w-full h-full object-cover opacity-70"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/70">
-                    <VideoIcon className="w-8 h-8" />
-                  </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/45 transition-colors">
-                  <div className="bg-white/90 backdrop-blur-md p-4 rounded-full shadow-lg text-[#111111] hover:scale-105 transition-transform duration-300">
-                    <Play className="w-6 h-6 fill-[#111111] text-[#111111]" />
-                  </div>
-                </div>
+                <VideoThumbnail
+                  videoUrl={activeMedia.url}
+                  thumbnailUrl={activeMedia.thumbnailUrl}
+                  alt={activeMedia.alt || productName}
+                  playIconSize="lg"
+                />
               </div>
             )}
             <button
@@ -246,18 +236,12 @@ export default function ProductGallery({ images = [], videos = [], productName }
                   loading="lazy"
                 />
               ) : (
-                <div className="relative w-full h-full bg-black flex items-center justify-center">
-                  {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-70" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/70">
-                      <VideoIcon className="w-6 h-6" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <Play className="w-5 h-5 text-white fill-white" />
-                  </div>
-                </div>
+                <VideoThumbnail
+                  videoUrl={item.url}
+                  thumbnailUrl={item.thumbnailUrl}
+                  alt={item.alt || `${productName} Video`}
+                  playIconSize="sm"
+                />
               )}
             </button>
           ))}

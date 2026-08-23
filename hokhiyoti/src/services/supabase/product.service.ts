@@ -148,6 +148,7 @@ function rowToProduct(row: any): Product {
     featured: Boolean(row.featured),
     newArrival: Boolean(row.new_arrival),
     bestSeller: Boolean(row.best_seller),
+    showVideoOnHome: Boolean(row.show_video_on_home || row.show_video_home || videos.some((v) => v.isCover)),
     active: row.active !== undefined ? Boolean(row.active) : true,
     archived: Boolean(row.archived),
 
