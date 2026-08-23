@@ -209,7 +209,7 @@ export const supabaseProductService = {
     let query = supabase.from('products').select(selector)
 
     if (!params?.includeInactive) {
-      query = query.eq('active', true).eq('archived', false)
+      query = query.not('active', 'eq', false).not('archived', 'eq', true)
     }
 
     if (params?.categorySlug) {

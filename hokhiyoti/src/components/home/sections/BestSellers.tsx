@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Product } from '../../../types/product.types'
 import { supabaseProductService } from '../../../services/supabase/product.service'
-import ProductCard from '../ProductCard'
+import ProductGrid from '../../common/ProductGrid'
 
 export default function BestSellers() {
   const [products, setProducts] = useState<Product[]>([])
@@ -9,7 +9,7 @@ export default function BestSellers() {
   const [hasMore, setHasMore] = useState(true)
   const [cursors, setCursors] = useState<Array<{ createdAt: string; id: string } | null>>([null])
 
-  const limit = 9
+  const limit = 10
 
   const loadMore = async (isInitial = false) => {
     if (loading) return
@@ -51,40 +51,26 @@ export default function BestSellers() {
   }, [])
 
   return (
-    <section className="bg-[#FAF9F6] py-24 px-6 md:px-12 max-w-[1400px] mx-auto">
+    <section className="bg-[#FAF9F6] py-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
           <span className="font-sans text-[11px] font-medium tracking-[0.25em] text-[#B08D57] uppercase">
             MOST COVETED
           </span>
-          <h2 className="mt-3 font-heading text-3xl md:text-4xl font-medium text-[#111111] leading-tight">
+          <h2 className="mt-2 font-heading text-2xl sm:text-3xl md:text-4xl font-medium text-[#111111] leading-tight">
             Best Sellers
           </h2>
         </div>
       </div>
 
-      {/* Grid of Product Cards */}
-      {products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        !loading && (
-          <div className="py-12 text-center text-sm font-sans text-[#666666] tracking-wide">
-            Curating best-selling items. Please check back shortly.
-          </div>
-        )
-      )}
-
-      {/* Loading Spinner */}
-      {loading && (
-        <div className="py-8 flex justify-center items-center">
-          <div className="w-6 h-6 border border-[#B08D57]/20 border-t-[#B08D57] rounded-full animate-spin" />
-        </div>
-      )}
+      {/* Product Grid */}
+      <ProductGrid
+        products={products}
+        loading={loading && products.length === 0}
+        skeletonCount={6}
+        emptyMessage="Curating best-selling items. Please check back shortly."
+      />
 
       {/* Show More / Show Less Controls */}
       <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -115,4 +101,3 @@ export default function BestSellers() {
     </section>
   )
 }
-

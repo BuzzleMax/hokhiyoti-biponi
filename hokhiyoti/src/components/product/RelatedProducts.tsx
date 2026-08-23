@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import ProductCard from '../home/ProductCard'
+import ProductGrid from '../common/ProductGrid'
 import { supabaseProductService } from '../../services/supabase/product.service'
 import type { Product } from '../../types/product.types'
 
@@ -31,7 +31,7 @@ export default function RelatedProducts({
         }
 
         // Filter out current product
-        const filtered = items.filter((p) => p.id !== currentProductId && p.slug !== currentProductId).slice(0, 4)
+        const filtered = items.filter((p) => p.id !== currentProductId && p.slug !== currentProductId).slice(0, 6)
 
         if (active) {
           setRelated(filtered)
@@ -50,7 +50,7 @@ export default function RelatedProducts({
     }
   }, [currentProductId, categorySlug, collectionSlug])
 
-  if (loading || related.length === 0) return null
+  if (!loading && related.length === 0) return null
 
   return (
     <div className="pt-16 border-t border-[rgba(0,0,0,0.06)] space-y-8">
@@ -63,11 +63,7 @@ export default function RelatedProducts({
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {related.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      <ProductGrid products={related} loading={loading} skeletonCount={4} />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import type { Collection } from '../types/collection.types'
 import { supabaseProductService } from '../services/supabase/product.service'
 import { supabaseCategoryService } from '../services/supabase/category.service'
 import { supabaseCollectionService } from '../services/supabase/collection.service'
-import ProductCard from '../components/home/ProductCard'
+import ProductGrid from '../components/common/ProductGrid'
 import { Search, Filter, X, SlidersHorizontal } from 'lucide-react'
 import { useSEO } from '../hooks/useSEO'
 
@@ -351,25 +351,12 @@ export default function SearchPage() {
       )}
 
       {/* Grid Results */}
-      {products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      ) : (
-        !loading && (
-          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200 space-y-3">
-            <p className="font-sans text-sm font-medium text-[#111111]">No curations match your current search or filters.</p>
-            <button
-              onClick={clearFilters}
-              className="px-6 py-2.5 rounded-full bg-[#111111] text-white text-xs font-semibold tracking-wider uppercase"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        )
-      )}
+      <ProductGrid
+        products={products}
+        loading={loading && products.length === 0}
+        skeletonCount={9}
+        emptyMessage="No curations match your current search or filters."
+      />
 
       {/* Loading Spinner */}
       {loading && (
