@@ -90,6 +90,7 @@ export default function App() {
                         <Switch>
                           <Route path="/" component={HomePage} />
                           <Route path="/collection" component={CollectionPage} />
+                          <Route path="/collection/:slug" component={CollectionPage} />
                           <Route path="/category" component={CategoryPage} />
                           <Route path="/product/:id" component={ProductPage} />
                           <Route path="/search" component={SearchPage} />

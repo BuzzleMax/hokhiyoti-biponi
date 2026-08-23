@@ -49,6 +49,7 @@ export default function FeaturedCollection() {
       {/* Grid of collections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {collections && collections.length > 0 ? collections.map((col, index) => {
+          const colRoute = `/collection/${col.slug || col.id}`
           return (
             <motion.div
               key={col.id}
@@ -56,38 +57,40 @@ export default function FeaturedCollection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.15 }}
               transition={{ duration: 0.7, delay: index * 0.12, ease: [0.25, 0.1, 0.25, 1] }}
-              className="group relative flex flex-col bg-white rounded-xl overflow-hidden shadow-elevated border border-[rgba(0,0,0,0.04)]"
             >
-              {/* Image */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAF9F6]">
-                <img
-                  src={col.imageUrl || '/assets/hero.png'}
-                  alt={col.name}
-                  className="w-full h-full object-cover transition-transform duration-1200 ease-out group-hover:scale-[1.03]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-600" />
-                <div className="absolute bottom-8 left-8 text-white">
-                  <span className="font-sans text-[10px] tracking-[0.2em] uppercase font-semibold text-[#FAF9F6]/90">
-                    Collection
-                  </span>
-                  <h3 className="font-heading text-2xl font-medium mt-2">{col.name}</h3>
+              <AppLink
+                to={colRoute}
+                className="group relative flex flex-col h-full bg-white rounded-xl overflow-hidden shadow-elevated border border-[rgba(0,0,0,0.04)] cursor-pointer"
+              >
+                {/* Image */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAF9F6]">
+                  <img
+                    src={col.imageUrl || '/assets/hero.png'}
+                    alt={col.name}
+                    className="w-full h-full object-cover transition-transform duration-1200 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-600" />
+                  <div className="absolute bottom-8 left-8 text-white">
+                    <span className="font-sans text-[10px] tracking-[0.2em] uppercase font-semibold text-[#FAF9F6]/90">
+                      Collection
+                    </span>
+                    <h3 className="font-heading text-2xl font-medium mt-2">{col.name}</h3>
+                  </div>
                 </div>
-              </div>
 
-              {/* Description & Link */}
-              <div className="p-10 flex flex-col justify-between flex-grow">
-                <p className="font-sans text-sm text-[#4a4a4a] leading-relaxed mb-8 font-light">
-                  {col.description}
-                </p>
-                <AppLink to="/collection">
+                {/* Description & Link */}
+                <div className="p-10 flex flex-col justify-between flex-grow">
+                  <p className="font-sans text-sm text-[#4a4a4a] leading-relaxed mb-8 font-light">
+                    {col.description}
+                  </p>
                   <button
                     type="button"
-                    className="h-12 w-full rounded-lg border border-[#0a0a0a] text-[#0a0a0a] hover:bg-[#0a0a0a] hover:text-[#FAF9F6] transition-colors duration-400 font-sans text-xs font-semibold tracking-[0.15em]"
+                    className="h-12 w-full rounded-lg border border-[#0a0a0a] text-[#0a0a0a] group-hover:bg-[#0a0a0a] group-hover:text-[#FAF9F6] transition-colors duration-400 font-sans text-xs font-semibold tracking-[0.15em] cursor-pointer"
                   >
                     EXPLORE COLLECTION
                   </button>
-                </AppLink>
-              </div>
+                </div>
+              </AppLink>
             </motion.div>
           )
         }) : (

@@ -23,13 +23,13 @@ function rowToCollection(row: CollectionRow): Collection {
 }
 
 function collectionToRow(collection: Partial<Collection>): Partial<CollectionRow> {
-  return {
-    name: collection.name,
-    slug: collection.slug,
-    description: collection.description || null,
-    image_url: collection.imageUrl || null,
-    featured: collection.featured || false,
-  }
+  const row: Partial<CollectionRow> = {}
+  if (collection.name !== undefined) row.name = collection.name
+  if (collection.slug !== undefined) row.slug = collection.slug
+  if (collection.description !== undefined) row.description = collection.description || null
+  if (collection.imageUrl !== undefined) row.image_url = collection.imageUrl || null
+  if (collection.featured !== undefined) row.featured = Boolean(collection.featured)
+  return row
 }
 
 let cachedCollections: Collection[] | null = null
@@ -53,24 +53,57 @@ export const supabaseCollectionService = {
 
   async getFeaturedCollections(bypassCache = false): Promise<Collection[]> {
     const all = await this.listCollections(bypassCache)
-    const featured = all.filter(c => c.featured)
-    return featured.length > 0 ? featured : all
+    return all.filter(c => Boolean(c.featured))
   },
 
   async getCollectionBySlug(slug: string): Promise<Collection> {
+    const res = await this.getCollectionBySlugOrId(slug)
+    if (!res) throw new Error(`Collection not found: ${slug}`)
+    return res
+  },
+
+  async getCollectionBySlugOrId(identifier: string): Promise<Collection | null> {
+    if (!identifier) return null
     if (cachedCollections) {
-      const cached = cachedCollections.find(c => c.slug === slug)
+      const cached = cachedCollections.find(c => c.slug === identifier || c.id === identifier)
       if (cached) return cached
     }
-    const { data, error } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)
+    let query = supabase
       .from('collections')
       .select('id, name, slug, description, featured, image_url, created_at')
-      .eq('slug', slug)
-      .single()
 
-    if (error) throw error
-    if (!data) throw new Error(`Collection not found: ${slug}`)
+    if (isUuid) {
+      query = query.or(`id.eq.${identifier},slug.eq.${identifier}`)
+    } else {
+      query = query.eq('slug', identifier)
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (error) {
+      console.error('Error fetching collection by identifier:', error)
+      return null
+    }
+    if (!data) return null
     return rowToCollection(data)
+  },
+
+  async uploadCollectionCoverImage(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `col_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`
+
+    let bucketName = 'collection-images'
+    let { error } = await supabase.storage.from(bucketName).upload(fileName, file)
+
+    if (error) {
+      // Fallback to product-images bucket if collection-images is not available yet
+      bucketName = 'product-images'
+      const fallbackUpload = await supabase.storage.from(bucketName).upload(fileName, file)
+      if (fallbackUpload.error) throw fallbackUpload.error
+    }
+
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(fileName)
+    return data.publicUrl
   },
 
   async createCollection(collection: Partial<Collection>): Promise<Collection> {
