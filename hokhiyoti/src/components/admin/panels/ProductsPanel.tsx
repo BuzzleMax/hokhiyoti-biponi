@@ -54,6 +54,7 @@ export default function ProductsPanel() {
     featured: false,
     newArrival: false,
     bestSeller: false,
+    outOfStock: false,
     stockQuantity: 10,
     media: [] as ManagedMedia[],
     coloursText: '',
@@ -133,6 +134,7 @@ export default function ProductsPanel() {
       featured: false,
       newArrival: true,
       bestSeller: false,
+      outOfStock: false,
       stockQuantity: 10,
       media: [],
       coloursText: '',
@@ -185,6 +187,7 @@ export default function ProductsPanel() {
       featured: prod.featured,
       newArrival: prod.newArrival,
       bestSeller: prod.bestSeller,
+      outOfStock: Boolean(prod.outOfStock || prod.availabilityStatus === 'out_of_stock'),
       stockQuantity: prod.stockQuantity,
       media,
       coloursText: prod.colours.map((c) => c.name).join(', '),
@@ -242,6 +245,7 @@ export default function ProductsPanel() {
       featured: form.featured,
       newArrival: form.newArrival,
       bestSeller: form.bestSeller,
+      outOfStock: form.outOfStock,
       stockQuantity: Number(form.stockQuantity),
       images: images.map((img) => ({ url: img.url, alt: img.alt, isCover: img.isCover })),
       videos: videos.map((vid) => ({ url: vid.url, thumbnailUrl: vid.thumbnailUrl, alt: vid.alt, isCover: vid.isCover })),
@@ -398,15 +402,38 @@ export default function ProductsPanel() {
                       {formatMediaCount(p.images.length, p.videos.length)}
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => handleTogglePublish(p.id, p.active ?? true)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                          p.active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {p.active !== false ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        {p.active !== false ? 'Published' : 'Hidden'}
-                      </button>
+                      <div className="flex flex-wrap items-center gap-1.5 max-w-[200px]">
+                        <button
+                          onClick={() => handleTogglePublish(p.id, p.active ?? true)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                            p.active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {p.active !== false ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                          {p.active !== false ? 'Published' : 'Hidden'}
+                        </button>
+
+                        {p.featured && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                            Featured ✓
+                          </span>
+                        )}
+                        {p.newArrival && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                            New Arrival ✓
+                          </span>
+                        )}
+                        {p.bestSeller && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                            Best Seller ✓
+                          </span>
+                        )}
+                        {(p.outOfStock || p.availabilityStatus === 'out_of_stock') && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">
+                            Out of Stock ✓
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -708,7 +735,7 @@ export default function ProductsPanel() {
 
               {/* Badges & SEO */}
               <div className="flex flex-wrap gap-4 pt-2 border-t">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.featured}
@@ -716,7 +743,7 @@ export default function ProductsPanel() {
                   />
                   <span className="font-semibold">Featured Product</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.newArrival}
@@ -724,13 +751,21 @@ export default function ProductsPanel() {
                   />
                   <span className="font-semibold">New Arrival</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.bestSeller}
                     onChange={(e) => setForm({ ...form, bestSeller: e.target.checked })}
                   />
                   <span className="font-semibold">Best Seller</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.outOfStock}
+                    onChange={(e) => setForm({ ...form, outOfStock: e.target.checked })}
+                  />
+                  <span className="font-semibold text-red-700">Out of Stock</span>
                 </label>
               </div>
 

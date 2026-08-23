@@ -216,7 +216,7 @@ export default function ProductPage() {
             </div>
 
             <div className="pt-2">
-              {product.availabilityStatus === 'out_of_stock' ? (
+              {product.outOfStock || product.availabilityStatus === 'out_of_stock' ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#8B3A3A] bg-[#8B3A3A]/5 border border-[#8B3A3A]/20 px-3 py-1.5 rounded-lg">
                   <span className="w-2 h-2 rounded-full bg-[#8B3A3A] animate-pulse" /> Out of Stock
                 </span>
@@ -301,18 +301,30 @@ export default function ProductPage() {
 
           {/* WhatsApp Direct Buy Button */}
           <div className="space-y-4 pt-4">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={handleBuyClick}
-              className="flex w-full h-16 rounded-lg bg-[#0a0a0a] text-[#FAF9F6] hover:bg-[#B08D57] transition-all duration-400 font-sans text-xs font-semibold tracking-[0.2em] uppercase items-center justify-center shadow-elevated hover:shadow-editorial gap-2"
-              aria-label={`Buy ${product.name} on WhatsApp`}
-            >
-              <span>BUY NOW ON WHATSAPP</span>
-            </a>
+            {product.outOfStock || product.availabilityStatus === 'out_of_stock' ? (
+              <button
+                disabled
+                className="flex w-full h-16 rounded-lg bg-[#8B3A3A]/10 text-[#8B3A3A] font-sans text-xs font-bold tracking-[0.2em] uppercase items-center justify-center cursor-not-allowed border border-[#8B3A3A]/30 gap-2 opacity-90"
+                aria-label={`${product.name} is currently out of stock`}
+              >
+                <span>OUT OF STOCK</span>
+              </button>
+            ) : (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={handleBuyClick}
+                className="flex w-full h-16 rounded-lg bg-[#0a0a0a] text-[#FAF9F6] hover:bg-[#B08D57] transition-all duration-400 font-sans text-xs font-semibold tracking-[0.2em] uppercase items-center justify-center shadow-elevated hover:shadow-editorial gap-2"
+                aria-label={`Buy ${product.name} on WhatsApp`}
+              >
+                <span>BUY NOW ON WHATSAPP</span>
+              </a>
+            )}
             <p className="font-sans text-[11px] text-[#8a8a8a] text-center font-light leading-relaxed">
-              Instant assistance & direct order confirmation with our consultants.
+              {product.outOfStock || product.availabilityStatus === 'out_of_stock'
+                ? 'This piece is currently unavailable for immediate purchase.'
+                : 'Instant assistance & direct order confirmation with our consultants.'}
             </p>
           </div>
 

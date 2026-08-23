@@ -69,7 +69,7 @@ const ProductCard = memo(function ProductCard({ product }: { product: Product })
             </div>
           )}
 
-          {product.availabilityStatus === 'out_of_stock' ? (
+          {product.outOfStock || product.availabilityStatus === 'out_of_stock' ? (
             <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-[#8B3A3A] text-white font-sans text-[8px] sm:text-[9px] font-bold tracking-[0.15em] uppercase py-0.5 px-2 sm:py-1 sm:px-2.5 rounded-md z-10">
               OUT OF STOCK
             </div>

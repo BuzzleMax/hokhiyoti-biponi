@@ -112,7 +112,7 @@ function rowToProduct(row: any): Product {
   const lowStockLimit = row.low_stock_limit ?? 3
 
   let availabilityStatus: AvailabilityStatus = 'in_stock'
-  if (stockQuantity <= 0) {
+  if (Boolean(row.out_of_stock) || stockQuantity <= 0) {
     availabilityStatus = 'out_of_stock'
   } else if (stockQuantity <= lowStockLimit) {
     availabilityStatus = 'low_stock'
@@ -148,6 +148,7 @@ function rowToProduct(row: any): Product {
     featured: Boolean(row.featured),
     newArrival: Boolean(row.new_arrival),
     bestSeller: Boolean(row.best_seller),
+    outOfStock: Boolean(row.out_of_stock || availabilityStatus === 'out_of_stock'),
     showVideoOnHome: Boolean(row.show_video_on_home || row.show_video_home || videos.some((v) => v.isCover)),
     active: row.active !== undefined ? Boolean(row.active) : true,
     archived: Boolean(row.archived),
@@ -185,7 +186,7 @@ export const supabaseProductService = {
   `,
 
   listSelectQuery: `
-    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, fabric, colors, sizes, highlights, images, videos, enable_sizes,
+    id, name, slug, price, compare_price, description, availability_status, stock_quantity, active, archived, category_id, category_slug, category_name, collection_id, collection_slug, collection_name, created_at, featured, new_arrival, best_seller, out_of_stock, fabric, colors, sizes, highlights, images, videos, enable_sizes,
     categories (id, slug, name),
     collections (id, slug, name),
     product_images (id, image_url, alt_text, sort_order, is_cover),
@@ -261,27 +262,15 @@ export const supabaseProductService = {
   },
 
   async getBestSellers(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    const res = await this.getProducts({ bestSeller: true, limit, cursor })
-    if (res.length === 0 && !cursor) {
-      return this.getProducts({ limit, cursor })
-    }
-    return res
+    return this.getProducts({ bestSeller: true, limit, cursor })
   },
 
   async getFeaturedProducts(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    const res = await this.getProducts({ featured: true, limit, cursor })
-    if (res.length === 0 && !cursor) {
-      return this.getProducts({ limit, cursor })
-    }
-    return res
+    return this.getProducts({ featured: true, limit, cursor })
   },
 
   async getNewArrivals(limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
-    const res = await this.getProducts({ newArrival: true, limit, cursor })
-    if (res.length === 0 && !cursor) {
-      return this.getProducts({ limit, cursor })
-    }
-    return res
+    return this.getProducts({ newArrival: true, limit, cursor })
   },
 
   async getProductsByCategory(categorySlug: string, limit?: number, cursor?: PaginationCursor | null): Promise<Product[]> {
@@ -366,6 +355,7 @@ export const supabaseProductService = {
     featured?: boolean
     newArrival?: boolean
     bestSeller?: boolean
+    outOfStock?: boolean
     active?: boolean
     stockQuantity?: number
     images?: Array<{ url: string; alt?: string; isCover?: boolean; sortOrder?: number }>
@@ -404,6 +394,8 @@ export const supabaseProductService = {
       }
     }
 
+    const isOutOfStock = Boolean(productData.outOfStock)
+
     const row = {
       name: productData.name,
       slug,
@@ -425,6 +417,8 @@ export const supabaseProductService = {
       featured: productData.featured || false,
       new_arrival: productData.newArrival || false,
       best_seller: productData.bestSeller || false,
+      out_of_stock: isOutOfStock,
+      availability_status: (isOutOfStock || (productData.stockQuantity !== undefined && productData.stockQuantity <= 0)) ? 'out_of_stock' : 'in_stock',
       active: productData.active !== undefined ? productData.active : true,
       archived: false,
       stock_quantity: productData.stockQuantity ?? 10,
@@ -519,6 +513,7 @@ export const supabaseProductService = {
       featured?: boolean
       newArrival?: boolean
       bestSeller?: boolean
+      outOfStock?: boolean
       active?: boolean
       archived?: boolean
       stockQuantity?: number
@@ -577,9 +572,24 @@ export const supabaseProductService = {
     if (updates.featured !== undefined) rowUpdates.featured = updates.featured
     if (updates.newArrival !== undefined) rowUpdates.new_arrival = updates.newArrival
     if (updates.bestSeller !== undefined) rowUpdates.best_seller = updates.bestSeller
+    if (updates.outOfStock !== undefined) {
+      rowUpdates.out_of_stock = updates.outOfStock
+      if (updates.outOfStock) {
+        rowUpdates.availability_status = 'out_of_stock'
+      } else if (updates.stockQuantity !== undefined) {
+        rowUpdates.availability_status = updates.stockQuantity <= 0 ? 'out_of_stock' : 'in_stock'
+      } else {
+        rowUpdates.availability_status = 'in_stock'
+      }
+    }
     if (updates.active !== undefined) rowUpdates.active = updates.active
     if (updates.archived !== undefined) rowUpdates.archived = updates.archived
-    if (updates.stockQuantity !== undefined) rowUpdates.stock_quantity = updates.stockQuantity
+    if (updates.stockQuantity !== undefined) {
+      rowUpdates.stock_quantity = updates.stockQuantity
+      if (updates.outOfStock === undefined) {
+        rowUpdates.availability_status = updates.stockQuantity <= 0 ? 'out_of_stock' : 'in_stock'
+      }
+    }
     if (updates.seoTitle !== undefined) rowUpdates.seo_title = updates.seoTitle
     if (updates.seoDescription !== undefined) rowUpdates.seo_description = updates.seoDescription
 
@@ -696,6 +706,7 @@ export const supabaseProductService = {
       featured: false,
       newArrival: true,
       bestSeller: false,
+      outOfStock: Boolean(original.outOfStock || original.availabilityStatus === 'out_of_stock'),
       active: true,
       stockQuantity: original.stockQuantity,
       images: original.images.map((img) => ({ url: img.url, alt: img.alt, isCover: img.isCover })),
