@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AppLink } from '../../../lib/navigation'
 import type { Product } from '../../../types/product.types'
 import { supabaseProductService } from '../../../services/supabase/product.service'
-import ProductGrid from '../../common/ProductGrid'
+import HorizontalProductRow from '../../common/HorizontalProductRow'
 
 export default function NewArrivals() {
   const [products, setProducts] = useState<Product[]>([])
@@ -52,7 +52,7 @@ export default function NewArrivals() {
   }, [])
 
   return (
-    <section className="bg-[#FAF9F6] py-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto">
+    <section className="bg-[#FAF9F6] py-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
@@ -71,8 +71,8 @@ export default function NewArrivals() {
         </AppLink>
       </div>
 
-      {/* Product Grid */}
-      <ProductGrid
+      {/* Product Row */}
+      <HorizontalProductRow
         products={products}
         loading={loading && products.length === 0}
         skeletonCount={6}

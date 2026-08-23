@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Product } from '../../../types/product.types'
 import { supabaseProductService } from '../../../services/supabase/product.service'
-import ProductCard from '../ProductCard'
+import HorizontalProductRow from '../../common/HorizontalProductRow'
 
 export default function ExploreSection() {
   const [products, setProducts] = useState<Product[]>([])
@@ -72,46 +72,13 @@ export default function ExploreSection() {
         </div>
       </div>
 
-      {/* Loading Skeletons */}
-      {loading && products.length === 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div
-              key={`skel-exp-${idx}`}
-              className="flex flex-col bg-white rounded-xl overflow-hidden border border-[rgba(0,0,0,0.04)] animate-pulse"
-            >
-              <div className="aspect-[4/5] bg-gray-200 w-full" />
-              <div className="p-3 space-y-2">
-                <div className="h-3 bg-gray-200 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {/* Mobile Horizontal Touch-Scroll Container (~2 cards visible per view) */}
-          <div className="block md:hidden">
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-none -mx-4 px-4">
-              {products.map((product) => (
-                <div
-                  key={`mob-exp-${product.id}`}
-                  className="snap-start shrink-0 w-[44vw] max-w-[200px]"
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop Grid Layout (4-6 cards per row) */}
-          <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-5">
-            {products.map((product) => (
-              <ProductCard key={`dt-exp-${product.id}`} product={product} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Product Row */}
+      <HorizontalProductRow
+        products={products}
+        loading={loading && products.length === 0}
+        skeletonCount={6}
+        emptyMessage="Curating explore items. Please check back shortly."
+      />
 
       {/* Pagination Controls */}
       {products.length > 0 && (
