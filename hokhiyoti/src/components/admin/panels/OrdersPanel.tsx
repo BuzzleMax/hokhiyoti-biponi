@@ -6,6 +6,7 @@ import {
   Search,
   Loader2,
   ShoppingCart,
+  RefreshCw,
 } from 'lucide-react'
 
 const AUNT_STATUSES: Array<{
@@ -52,11 +53,13 @@ export default function OrdersPanel() {
     setLoading(true)
     setError(null)
     try {
+      console.log('Loading orders with filter:', statusFilter, 'search:', search)
       const data = await supabaseOrderService.getOrders({
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: search.trim() || undefined,
         limit: 100,
       })
+      console.log('Orders loaded successfully:', data.length)
       setOrders(data)
     } catch (err) {
       console.error('Failed to load orders:', err)
@@ -132,16 +135,26 @@ export default function OrdersPanel() {
           </p>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by Order ID or product..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-black/10 text-xs focus:outline-none focus:border-[#B08D57] bg-[#FAF9F6]"
-          />
+        {/* Search and Refresh */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by Order ID or product..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-black/10 text-xs focus:outline-none focus:border-[#B08D57] bg-[#FAF9F6]"
+            />
+          </div>
+          <button
+            onClick={loadOrders}
+            disabled={loading}
+            className="p-2 rounded-xl border border-black/10 hover:border-[#B08D57] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh orders"
+          >
+            <RefreshCw className={`w-4 h-4 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
@@ -189,12 +202,14 @@ export default function OrdersPanel() {
             <span className="text-xs text-gray-500 font-medium">Loading orders...</span>
           </div>
         ) : error ? (
-          <div className="py-16 text-center text-red-600 text-xs font-semibold">
-            {error}
+          <div className="py-16 text-center">
+            <p className="text-red-600 text-xs font-semibold mb-2">{error}</p>
+            <p className="text-gray-400 text-xs">Check console for details and ensure database policies are correctly configured.</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 text-xs font-light">
-            No orders found matching the criteria.
+          <div className="py-16 text-center">
+            <p className="text-gray-400 text-xs font-light mb-2">No orders found matching the criteria.</p>
+            <p className="text-gray-300 text-[10px]">If orders are being created but not showing, run the SQL fix in supabase/fix-orders-policy.sql</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -216,28 +216,9 @@ export const supabaseOrderService = {
 
     const { data, error } = await supabase.from('orders').insert(row).select().single()
     if (error) {
-      console.warn('Supabase order creation returned error, falling back to returned object:', error)
-      const fallbackId = input.orderId || `HOK-${Math.floor(1040 + Math.random() * 9000)}`
-      return {
-        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        orderId: fallbackId,
-        orderNumber: fallbackId,
-        productId: input.productId,
-        productName: input.productName,
-        sellingPrice,
-        productPrice: sellingPrice,
-        commissionRate,
-        commissionPercentage: commissionRate,
-        commissionAmount,
-        sellerEarnings,
-        customerName: input.customerName || 'WhatsApp Customer',
-        customerPhone: input.customerPhone || '',
-        status,
-        commissionStatus: 'pending',
-        paymentStatus: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
+      console.error('Supabase order creation failed:', error)
+      console.error('Order data being inserted:', row)
+      throw new Error(`Failed to create order: ${error.message}`)
     }
 
     return rowToOrder(data)
@@ -248,6 +229,8 @@ export const supabaseOrderService = {
       typeof params === 'boolean'
         ? { includeArchived: params, limit, cursor }
         : { ...(params || {}), limit: params?.limit ?? limit, cursor: params?.cursor ?? cursor }
+
+    console.log('Fetching orders with params:', opts)
 
     let query = supabase.from('orders').select('*')
 
@@ -281,7 +264,18 @@ export const supabaseOrderService = {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      console.error('Error fetching orders:', error)
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
+      throw new Error(`Failed to fetch orders: ${error.message}. This might be a database permission issue. Run the SQL fix scripts in the supabase folder.`)
+    }
+    
+    console.log('Fetched orders:', data?.length || 0)
     return (data || []).map(rowToOrder)
   },
 

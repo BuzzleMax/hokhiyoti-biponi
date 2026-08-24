@@ -133,8 +133,11 @@ export default function ProductPage() {
         status: 'Confirmed',
       })
       orderIdToUse = newOrder.orderId || newOrder.orderNumber
+      console.log('Order created successfully:', orderIdToUse)
     } catch (err) {
-      console.error('Failed to save order, opening WhatsApp anyway:', err)
+      console.error('Failed to create order:', err)
+      alert('Unable to create your order. Please try again or contact us directly on WhatsApp.')
+      return
     }
 
     const finalUrl = getWhatsAppProductUrl({
