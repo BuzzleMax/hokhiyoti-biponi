@@ -116,7 +116,7 @@ export default function ProductPage() {
     e.preventDefault()
     let orderIdToUse: string | undefined
     try {
-      const commissionPct = await supabaseOrderService.getCommissionPercentage()
+      const commissionPct = await supabaseOrderService.getCommissionPercentage(true)
       const { commissionAmount, sellerEarnings } = calculateCommission(product.price, commissionPct)
 
       const newOrder = await supabaseOrderService.createOrder({
@@ -134,9 +134,10 @@ export default function ProductPage() {
       })
       orderIdToUse = newOrder.orderId || newOrder.orderNumber
       console.log('Order created successfully:', orderIdToUse)
-    } catch (err) {
-      console.error('Failed to create order:', err)
-      alert('Unable to create your order. Please try again or contact us directly on WhatsApp.')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('Failed to create Supabase order:', err)
+      alert(`Unable to create your order: ${errorMessage}\nPlease try again or contact us directly on WhatsApp.`)
       return
     }
 

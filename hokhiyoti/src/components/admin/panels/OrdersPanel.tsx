@@ -95,10 +95,11 @@ export default function OrdersPanel() {
         message: `Order status updated to ${targetStatus}`,
         type: 'success',
       })
-    } catch (err) {
+    } catch (err: unknown) {
+      const realError = err instanceof Error ? err.message : String(err)
       console.error('Failed to update status:', err)
       setToast({
-        message: 'Failed to update order status. Please try again.',
+        message: `Failed to update status: ${realError}`,
         type: 'error',
       })
     } finally {
@@ -293,14 +294,15 @@ export default function OrdersPanel() {
                       </td>
 
                       {/* Commission */}
-                      <td className="px-6 py-4 font-bold">
-                        {isCancelled ? (
-                          <span className="text-gray-400 line-through">₹0</span>
-                        ) : (
-                          <span className="text-[#B08D57]">
-                            {formatPriceINR(o.commissionAmount)} ({o.commissionRate || 10}%)
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col font-mono">
+                          <span className={`text-xs font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-[#B08D57]'}`}>
+                            {isCancelled ? '₹0' : formatPriceINR(o.commissionAmount)}
                           </span>
-                        )}
+                          <span className="text-[10px] text-gray-500 font-semibold">
+                            {o.commissionRate || 10}% rate
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   )
