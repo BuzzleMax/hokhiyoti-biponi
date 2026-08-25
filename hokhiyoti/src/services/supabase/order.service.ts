@@ -337,22 +337,28 @@ export const supabaseOrderService = {
    * Cancelled = order cancelled (commission = ₹0).
    */
   async updateOrderStatus(id: string, status: OrderStatus, adminNote?: string): Promise<void> {
-    // Fetch existing order details to recalculate commission
-    const { data: existing } = await supabase.from('orders').select('*').eq('id', id).maybeSingle()
-    const sellingPrice = Number(existing?.selling_price ?? existing?.product_price ?? existing?.total_amount ?? 0)
-    const commissionRate = Number(existing?.commission_rate ?? existing?.commission_percentage ?? 10)
+    // Normalize status to Title Case for consistency
+    const normalizedStatus = this._normalizeStatus(status)
 
-    const isCancelled = status === 'Cancelled' || String(status).toLowerCase() === 'cancelled'
+    // Fetch existing order details by primary key UUID `id` to preserve historical commission snapshot
+    const { data: existing } = await supabase.from('orders').select('*').eq('id', id).maybeSingle()
+
+    const sellingPrice = Number(existing?.selling_price ?? existing?.product_price ?? existing?.total_amount ?? 0)
+    const commissionRate = Number(existing?.commission_rate ?? existing?.commission_percentage ?? DEFAULT_COMMISSION_FALLBACK)
+
+    const isCancelled = normalizedStatus === 'Cancelled'
     const commissionAmount = isCancelled ? 0 : Math.round(sellingPrice * (commissionRate / 100))
     const sellerEarnings = sellingPrice - commissionAmount
 
-    const commissionStatus = deriveCommissionStatus(status)
+    const commissionStatus = deriveCommissionStatus(normalizedStatus)
+    const paymentStatus = normalizedStatus === 'Paid' || normalizedStatus === 'Completed' ? 'paid' : 'pending'
 
     const updateData: Record<string, unknown> = {
-      order_status: status,
+      order_status: normalizedStatus,
       commission_amount: commissionAmount,
       seller_earnings: sellerEarnings,
       commission_status: commissionStatus,
+      payment_status: paymentStatus,
       updated_at: new Date().toISOString(),
     }
 
@@ -360,24 +366,78 @@ export const supabaseOrderService = {
       updateData.admin_note = adminNote
     }
 
-    const { error } = await supabase
+    // Tier 1: Try SECURITY DEFINER RPC `update_order_status_admin`
+    try {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('update_order_status_admin', {
+        p_order_id: id,
+        p_status: normalizedStatus,
+        p_admin_note: adminNote || null,
+      })
+
+      if (!rpcError && rpcResult) {
+        if (typeof rpcResult === 'object' && (rpcResult as { success?: boolean; error?: string }).success === false) {
+          throw new Error(`Status update rejected: ${(rpcResult as { error?: string }).error || 'Unknown RPC error'}`)
+        }
+        return
+      }
+    } catch (rpcErr) {
+      if (rpcErr instanceof Error && !rpcErr.message.includes('Could not find the function')) {
+        throw rpcErr
+      }
+    }
+
+    // Tier 2: Try SECURITY DEFINER RPC `bulk_update_order_status` (pre-existing in schema)
+    try {
+      const { error: bulkErr } = await supabase.rpc('bulk_update_order_status', {
+        p_order_ids: [id],
+        p_status: normalizedStatus,
+        p_admin_note: adminNote || null,
+      })
+
+      if (!bulkErr) {
+        return
+      }
+    } catch {
+      // Fall through to standard update
+    }
+
+    // Tier 3: Standard Supabase .update() with .select() to verify row modification
+    const { data: updatedRows, error: updateError } = await supabase
       .from('orders')
       .update(updateData)
       .eq('id', id)
+      .select()
 
-    if (error) throw error
+    if (updateError) {
+      const errMsg = updateError.message || updateError.details || updateError.hint || updateError.code || JSON.stringify(updateError)
+      throw new Error(`Database update failed: ${errMsg}`)
+    }
 
-    // Insert timeline entry
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error(`Order status update failed: 0 rows updated for ID ${id}. Verify RLS database permissions.`)
+    }
+
+    // Insert timeline entry (best effort)
     try {
       await supabase.from('order_timeline').insert({
         order_id: id,
-        status,
+        status: normalizedStatus,
         changed_by: 'Admin',
         note: adminNote || null,
       })
     } catch {
-      // Best effort
+      // Best effort — timeline table may not exist
     }
+  },
+
+  /** Normalize any status variant to Title Case */
+  _normalizeStatus(status: OrderStatus | string): OrderStatus {
+    const s = String(status).toLowerCase()
+    if (['confirmed', 'lead_created', 'customer_contacted', 'processing', 'pending'].includes(s)) return 'Confirmed'
+    if (['paid', 'packed', 'shipped'].includes(s)) return 'Paid'
+    if (['completed', 'delivered'].includes(s)) return 'Completed'
+    if (['cancelled', 'rejected', 'archived'].includes(s)) return 'Cancelled'
+    return 'Confirmed'
   },
 
   /**

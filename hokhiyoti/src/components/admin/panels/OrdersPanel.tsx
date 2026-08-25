@@ -24,6 +24,7 @@ const AUNT_STATUSES: Array<{
 
 export default function OrdersPanel() {
   const [orders, setOrders] = useState<Order[]>([])
+  const [allOrders, setAllOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all')
@@ -54,13 +55,23 @@ export default function OrdersPanel() {
     setError(null)
     try {
       console.log('Loading orders with filter:', statusFilter, 'search:', search)
-      const data = await supabaseOrderService.getOrders({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
+
+      // Always fetch all orders (unfiltered) to compute accurate status counts
+      const allData = await supabaseOrderService.getOrders({
         search: search.trim() || undefined,
-        limit: 100,
+        limit: 200,
       })
-      console.log('Orders loaded successfully:', data.length)
-      setOrders(data)
+      setAllOrders(allData)
+
+      // Apply status filter client-side for display
+      if (statusFilter !== 'all') {
+        const filtered = allData.filter((o) => o.status === statusFilter)
+        setOrders(filtered)
+      } else {
+        setOrders(allData)
+      }
+
+      console.log('Orders loaded successfully:', allData.length)
     } catch (err) {
       console.error('Failed to load orders:', err)
       setError('Failed to load orders')
@@ -69,34 +80,63 @@ export default function OrdersPanel() {
     }
   }
 
+  const getErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      if (err.message && err.message !== '[object Object]') return err.message
+    }
+    if (err && typeof err === 'object') {
+      const obj = err as Record<string, unknown>
+      const msg = obj.message || obj.details || obj.hint || obj.code || (typeof obj.error === 'string' ? obj.error : null)
+      if (typeof msg === 'string' && msg !== '[object Object]') return msg
+      try {
+        return JSON.stringify(err)
+      } catch {
+        return String(err)
+      }
+    }
+    return String(err)
+  }
+
   const handleStatusChange = async (id: string, targetStatus: OrderStatus) => {
     setUpdatingId(id)
     try {
       await supabaseOrderService.updateOrderStatus(id, targetStatus)
-      const commissionRate = orders.find((o) => o.id === id)?.commissionRate || 10
-      const sellingPrice = orders.find((o) => o.id === id)?.sellingPrice || 0
+
+      // Optimistic local update for immediate UI feedback
+      const targetOrder = allOrders.find((o) => o.id === id) || orders.find((o) => o.id === id)
+      const commissionRate = targetOrder?.commissionRate ?? targetOrder?.commissionPercentage ?? 10
+      const sellingPrice = targetOrder?.sellingPrice ?? targetOrder?.productPrice ?? 0
       const isCancelled = targetStatus === 'Cancelled'
       const newCommission = isCancelled ? 0 : Math.round(sellingPrice * (commissionRate / 100))
+      const newSellerEarnings = sellingPrice - newCommission
 
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === id
-            ? {
-                ...o,
-                status: targetStatus,
-                commissionAmount: newCommission,
-                updatedAt: new Date().toISOString(),
-              }
-            : o
-        )
-      )
+      const updateOrder = (o: Order): Order =>
+        o.id === id
+          ? {
+              ...o,
+              status: targetStatus,
+              commissionAmount: newCommission,
+              sellerEarnings: newSellerEarnings,
+              commissionStatus: targetStatus === 'Completed' ? 'earned' : targetStatus === 'Cancelled' ? 'cancelled' : 'pending',
+              paymentStatus: targetStatus === 'Paid' || targetStatus === 'Completed' ? 'paid' : 'pending',
+              updatedAt: new Date().toISOString(),
+            }
+          : o
+
+      setOrders((prev) => prev.map(updateOrder))
+      setAllOrders((prev) => prev.map(updateOrder))
 
       setToast({
         message: `Order status updated to ${targetStatus}`,
         type: 'success',
       })
+
+      // Refetch from database after status update to ensure synchronization
+      setTimeout(() => {
+        loadOrders()
+      }, 500)
     } catch (err: unknown) {
-      const realError = err instanceof Error ? err.message : String(err)
+      const realError = getErrorMessage(err)
       console.error('Failed to update status:', err)
       setToast({
         message: `Failed to update status: ${realError}`,
@@ -169,12 +209,12 @@ export default function OrdersPanel() {
               : 'bg-white text-gray-600 border-black/10 hover:border-black/30'
           }`}
         >
-          All Orders ({orders.length})
+          All Orders ({allOrders.length})
         </button>
 
         {AUNT_STATUSES.map((st) => {
           const isActive = statusFilter === st.value
-          const count = orders.filter((o) => o.status === st.value).length
+          const count = allOrders.filter((o) => o.status === st.value).length
           return (
             <button
               key={st.value}
