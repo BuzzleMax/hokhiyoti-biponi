@@ -7,6 +7,7 @@ import {
   Loader2,
   ShoppingCart,
   RefreshCw,
+  X,
 } from 'lucide-react'
 
 const AUNT_STATUSES: Array<{
@@ -31,6 +32,8 @@ export default function OrdersPanel() {
   const [search, setSearch] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadOrders()
@@ -147,6 +150,35 @@ export default function OrdersPanel() {
     }
   }
 
+  const handleDeleteConfirmed = async () => {
+    if (!orderToDelete) return
+    setIsDeleting(true)
+    const displayId = orderToDelete.orderId || orderToDelete.orderNumber || `HOK-${orderToDelete.id.slice(0, 4)}`
+
+    try {
+      const res = await supabaseOrderService.deleteCancelledOrder(orderToDelete.id)
+
+      // Optimistically update list and total counts immediately
+      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id))
+      setAllOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id))
+
+      setToast({
+        message: res.message || `Order ${displayId} deleted successfully.`,
+        type: 'success',
+      })
+      setOrderToDelete(null)
+    } catch (err: unknown) {
+      const realError = getErrorMessage(err)
+      console.error('Failed to delete order:', err)
+      setToast({
+        message: `Failed to delete order: ${realError}`,
+        type: 'error',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6 font-sans">
       {/* Toast Notification */}
@@ -159,6 +191,46 @@ export default function OrdersPanel() {
           }`}
         >
           {toast.message}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-black/10 space-y-4">
+            <div className="flex items-center justify-between border-b border-black/5 pb-3">
+              <h3 className="text-lg font-bold text-gray-900 font-heading">Delete cancelled order?</h3>
+              <button
+                onClick={() => setOrderToDelete(null)}
+                disabled={isDeleting}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 font-sans leading-relaxed">
+              Order <strong className="font-mono text-black">{orderToDelete.orderId || orderToDelete.orderNumber || `HOK-${orderToDelete.id.slice(0, 4)}`}</strong> will be permanently removed. This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setOrderToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirmed}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Delete Order</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -305,30 +377,44 @@ export default function OrdersPanel() {
                         {formatPriceINR(o.sellingPrice || o.productPrice)}
                       </td>
 
-                      {/* Status Selector */}
+                      {/* Status Selector + Delete Icon */}
                       <td className="px-6 py-4">
-                        <div className="relative inline-block">
-                          <select
-                            disabled={isUpdating}
-                            value={o.status}
-                            onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                            className={`pl-3 pr-8 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none cursor-pointer transition-colors ${
-                              o.status === 'Confirmed'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                : o.status === 'Paid'
-                                ? 'bg-blue-50 text-blue-800 border-blue-300'
-                                : o.status === 'Completed'
-                                ? 'bg-purple-50 text-purple-800 border-purple-300'
-                                : 'bg-red-50 text-red-800 border-red-300'
-                            }`}
-                          >
-                            <option value="Confirmed">🟢 Confirmed</option>
-                            <option value="Paid">💰 Paid</option>
-                            <option value="Completed">📦 Completed</option>
-                            <option value="Cancelled">❌ Cancelled</option>
-                          </select>
-                          {isUpdating && (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <div className="flex items-center gap-2">
+                          <div className="relative inline-block">
+                            <select
+                              disabled={isUpdating}
+                              value={o.status}
+                              onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
+                              className={`pl-3 pr-8 py-1.5 rounded-xl text-xs font-semibold border focus:outline-none cursor-pointer transition-colors ${
+                                o.status === 'Confirmed'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : o.status === 'Paid'
+                                  ? 'bg-blue-50 text-blue-800 border-blue-300'
+                                  : o.status === 'Completed'
+                                  ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                  : 'bg-red-50 text-red-800 border-red-300'
+                              }`}
+                            >
+                              <option value="Confirmed">🟢 Confirmed</option>
+                              <option value="Paid">💰 Paid</option>
+                              <option value="Completed">📦 Completed</option>
+                              <option value="Cancelled">❌ Cancelled</option>
+                            </select>
+                            {isUpdating && (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-gray-500" />
+                            )}
+                          </div>
+
+                          {/* Delete X icon: ONLY shown when status is Cancelled */}
+                          {isCancelled && (
+                            <button
+                              onClick={() => setOrderToDelete(o)}
+                              disabled={isUpdating || isDeleting}
+                              title="Delete cancelled order"
+                              className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-colors cursor-pointer flex items-center justify-center border border-red-200"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -355,3 +441,4 @@ export default function OrdersPanel() {
     </div>
   )
 }
+

@@ -735,6 +735,86 @@ export const supabaseOrderService = {
     if (error) throw error
   },
 
+  /**
+   * Safe delete for Cancelled orders only.
+   * Enforces DB-level and service-level check: order_status must be 'Cancelled'.
+   */
+  async deleteCancelledOrder(id: string): Promise<{ success: boolean; message: string }> {
+    // 1. Service-level verification: check existing order status in database
+    const { data: existing, error: fetchErr } = await supabase
+      .from('orders')
+      .select('id, order_id, order_number, order_status')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (fetchErr) {
+      const msg = fetchErr.message || fetchErr.details || fetchErr.hint || JSON.stringify(fetchErr)
+      throw new Error(`Failed to check order status: ${msg}`)
+    }
+
+    if (!existing) {
+      throw new Error(`Order not found with ID ${id}`)
+    }
+
+    const rawStatus = (existing.order_status as string) || ''
+    const normalized = this._normalizeStatus(rawStatus as OrderStatus)
+    if (normalized !== 'Cancelled') {
+      throw new Error(`Cannot delete order: Status is '${normalized}'. Only Cancelled orders can be deleted.`)
+    }
+
+    const displayId = existing.order_id || existing.order_number || `HOK-${id.slice(0, 4)}`
+
+    // Tier 1: Try SECURITY DEFINER RPC `delete_cancelled_order_admin`
+    try {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_cancelled_order_admin', {
+        p_order_id: id,
+      })
+
+      if (!rpcError && rpcResult) {
+        if (typeof rpcResult === 'object' && (rpcResult as { success?: boolean; error?: string }).success === false) {
+          throw new Error((rpcResult as { error?: string }).error || 'Database rejected deletion.')
+        }
+        const rpcMessage = typeof rpcResult === 'object' && (rpcResult as { message?: string }).message
+        return {
+          success: true,
+          message: rpcMessage || `Order ${displayId} deleted successfully.`,
+        }
+      }
+
+      if (rpcError && !rpcError.message.includes('Could not find the function')) {
+        throw new Error(rpcError.message || rpcError.details || rpcError.hint || JSON.stringify(rpcError))
+      }
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes('Could not find the function')) {
+        throw err
+      }
+    }
+
+    // Tier 2: Direct Supabase DELETE guarded by eq('order_status', 'Cancelled') and RLS
+    try {
+      await supabase.from('seller_payouts').delete().eq('order_id', id)
+    } catch {}
+    try {
+      await supabase.from('order_timeline').delete().eq('order_id', id)
+    } catch {}
+
+    const { error: deleteError } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id)
+      .eq('order_status', 'Cancelled')
+
+    if (deleteError) {
+      const msg = deleteError.message || deleteError.details || deleteError.hint || deleteError.code || JSON.stringify(deleteError)
+      throw new Error(`Failed to delete cancelled order: ${msg}`)
+    }
+
+    return {
+      success: true,
+      message: `Order ${displayId} deleted successfully.`,
+    }
+  },
+
   async bulkArchiveOrders(ids: string[]): Promise<void> {
     const { error } = await supabase
       .from('orders')
